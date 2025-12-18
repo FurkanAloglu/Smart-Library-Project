@@ -1,0 +1,35 @@
+# =====================
+# BACKEND (Spring Boot)
+# =====================
+smart-library-backend/target/
+smart-library-backend/.env
+smart-library-backend/application.properties
+
+# =====================
+# FRONTEND (React)
+# =====================
+smart-library-frontend/node_modules/
+smart-library-frontend/dist/
+smart-library-frontend/.env
+
+# =====================
+# IDE / OS
+# =====================
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# =====================
+# Logs
+# =====================
+*.log
+v
+smart-library-backend/application.properties
+
+# =====================
+# FRONTEND (React)
+# =====================
+smart-library-frontend/node_modules/
+smart-library-frontend/dist/
+smart-library-fro
