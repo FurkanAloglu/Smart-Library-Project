@@ -1,46 +1,51 @@
 CREATE TABLE users (
                        id UUID PRIMARY KEY,
-                       email VARCHAR(255) UNIQUE NOT NULL,
+                       email VARCHAR(255) NOT NULL UNIQUE,
                        password VARCHAR(255) NOT NULL,
                        full_name VARCHAR(255) NOT NULL,
                        role VARCHAR(20) NOT NULL,
-                       is_deleted BOOLEAN DEFAULT FALSE,
+                       is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE authors (
                          id UUID PRIMARY KEY,
                          name VARCHAR(255) NOT NULL,
-                         is_deleted BOOLEAN DEFAULT FALSE
+                         is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE categories (
                             id UUID PRIMARY KEY,
-                            name VARCHAR(100) UNIQUE NOT NULL,
-                            is_deleted BOOLEAN DEFAULT FALSE
+                            name VARCHAR(255) NOT NULL UNIQUE,
+                            is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE books (
                        id UUID PRIMARY KEY,
                        title VARCHAR(255) NOT NULL,
-                       isbn VARCHAR(50) UNIQUE,
-                       stock INT NOT NULL CHECK (stock >= 0),
-                       is_deleted BOOLEAN DEFAULT FALSE
+                       description TEXT,
+                       isbn VARCHAR(20) NOT NULL UNIQUE,
+                       stock INT NOT NULL,
+                       image_url VARCHAR(255),
+                       is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE borrowings (
                             id UUID PRIMARY KEY,
-                            user_id UUID NOT NULL,
-                            book_id UUID NOT NULL,
-                            borrowed_at DATE NOT NULL,
+                            user_id UUID NOT NULL REFERENCES users(id),
+                            book_id UUID NOT NULL REFERENCES books(id),
+                            borrow_date DATE NOT NULL,
                             due_date DATE NOT NULL,
-                            returned_at DATE
+                            return_date DATE,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE penalties (
                            id UUID PRIMARY KEY,
-                           borrowing_id UUID UNIQUE NOT NULL,
-                           amount NUMERIC(10,2) NOT NULL,
-                           is_paid BOOLEAN DEFAULT FALSE,
-                           calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                           borrowing_id UUID NOT NULL UNIQUE REFERENCES borrowings(id),
+                           amount DECIMAL(10, 2) NOT NULL,
+                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

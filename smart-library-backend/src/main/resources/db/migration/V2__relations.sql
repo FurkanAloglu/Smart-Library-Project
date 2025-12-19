@@ -1,4 +1,3 @@
--- BOOK ↔ AUTHOR (many-to-many)
 CREATE TABLE book_authors (
                               book_id UUID NOT NULL,
                               author_id UUID NOT NULL,
@@ -9,7 +8,6 @@ CREATE TABLE book_authors (
                                   FOREIGN KEY (author_id) REFERENCES authors(id)
 );
 
--- BOOK ↔ CATEGORY (many-to-many)
 CREATE TABLE book_categories (
                                  book_id UUID NOT NULL,
                                  category_id UUID NOT NULL,
