@@ -24,12 +24,3 @@ smart-library-frontend/.env
 # Logs
 # =====================
 *.log
-v
-smart-library-backend/application.properties
-
-# =====================
-# FRONTEND (React)
-# =====================
-smart-library-frontend/node_modules/
-smart-library-frontend/dist/
-smart-library-fro
