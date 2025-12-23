@@ -3,10 +3,13 @@ package com.furkan.smart_library_backend.auth;
 import com.furkan.smart_library_backend.auth.dto.LoginRequest;
 import com.furkan.smart_library_backend.user.UserRepository;
 import com.furkan.smart_library_backend.user.dto.UserResponse;
+import com.furkan.smart_library_backend.auth.dto.RegisterRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 
 import java.security.Principal;
 
@@ -27,6 +30,11 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         authService.logout(response);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     @GetMapping("/me")

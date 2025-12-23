@@ -5,14 +5,20 @@ import com.furkan.smart_library_backend.security.JwtService;
 import com.furkan.smart_library_backend.user.User;
 import com.furkan.smart_library_backend.user.UserRepository;
 import com.furkan.smart_library_backend.user.dto.UserResponse;
+import com.furkan.smart_library_backend.auth.dto.RegisterRequest;
+import com.furkan.smart_library_backend.user.Role;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +28,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
 
     public UserResponse login(LoginRequest request, HttpServletResponse response) {
         authenticationManager.authenticate(
@@ -40,6 +47,22 @@ public class AuthService {
         addCookie(response, "refreshToken", refreshToken, 7 * 24 * 60 * 60);
 
         return UserResponse.fromEntity(user);
+    }
+
+    public UserResponse register(@Valid RegisterRequest request){
+        if (userRepository.existsByEmailAndDeletedFalse(request.email())) {
+            throw new IllegalArgumentException("Bu email adresi zaten kullanımda.");
+        }
+        User user = User.builder()
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
+                .fullName(request.fullName())
+                .role(Role.USER)
+                .deleted(false)
+                .build();
+
+        User savedUser = userRepository.save(user);
+        return UserResponse.fromEntity(savedUser);
     }
 
     public void logout(HttpServletResponse response) {
