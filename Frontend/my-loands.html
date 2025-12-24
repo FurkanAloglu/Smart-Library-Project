@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödünç Aldıklarım - SmartLibrary</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+
+    <main class="container mx-auto px-6 py-8">
+        <h2 class="text-3xl font-bold text-gray-900 mb-6">Ödünç Aldığım Kitaplar</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="loansContainer">
+            </div>
+
+        <div id="loading" class="text-center py-10 text-gray-500">Yükleniyor...</div>
+        <div id="emptyMessage" class="hidden text-center py-20 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
+            <div class="text-4xl text-gray-300 mb-3"><i class="fa-solid fa-book-reader"></i></div>
+            <p class="text-gray-500">Henüz ödünç aldığın bir kitap yok.</p>
+            <a href="dashboard.html" class="text-blue-600 hover:underline mt-2 inline-block">Kitaplara Göz At</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { loadNavbar } from './assets/js/layout.js';
+        import { getMyBorrowings, returnBook } from './assets/js/borrowing.js';
+
+        async function init() {
+            await loadNavbar();
+            renderLoans();
+        }
+
+        async function renderLoans() {
+            const container = document.getElementById('loansContainer');
+            const loading = document.getElementById('loading');
+            const emptyMsg = document.getElementById('emptyMessage');
+
+            const loans = await getMyBorrowings();
+            loading.classList.add('hidden');
+
+            if (loans.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Backend Response: BorrowingResponse (id, bookName, borrowDate, dueDate, returnDate)
+            // Not: Backend DTO'yu kontrol ettim
+            // Alanlar: id, bookId, userId, borrowDate, dueDate, returnDate
+            
+            loans.forEach(loan => {
+                const isReturned = !!loan.returnDate;
+                // Tarih formatlama
+                const due = new Date(loan.dueDate).toLocaleDateString('tr-TR');
+                
+                // Gecikme kontrolü (Basitce)
+                const isLate = !isReturned && new Date() > new Date(loan.dueDate);
+
+                const card = `
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group hover:shadow-md transition">
+                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                            <i class="fa-solid fa-book text-6xl"></i>
+                        </div>
+                        
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-900">${loan.bookName || 'Kitap ID: ' + loan.bookId.substring(0,5)}...</h3>
+                                <p class="text-xs text-gray-500">İşlem ID: #${loan.id.substring(0,8)}</p>
+                            </div>
+                            <span class="${isReturned ? 'bg-gray-100 text-gray-600' : (isLate ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')} text-xs font-bold px-2 py-1 rounded">
+                                ${isReturned ? 'İade Edildi' : (isLate ? 'GECİKTİ' : 'Okunuyor')}
+                            </span>
+                        </div>
+
+                        <div class="space-y-2 text-sm text-gray-600 mb-6">
+                            <div class="flex justify-between">
+                                <span>Alış Tarihi:</span>
+                                <span class="font-medium">${new Date(loan.borrowDate).toLocaleDateString('tr-TR')}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Son Teslim:</span>
+                                <span class="font-medium ${isLate ? 'text-red-600' : ''}">${due}</span>
+                            </div>
+                        </div>
+
+                        ${!isReturned ? `
+                            <button onclick="window.handleReturn('${loan.id}')" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-2 rounded-lg transition border border-blue-100">
+                                Kitabı İade Et
+                            </button>
+                        ` : `
+                             <div class="text-center text-xs text-gray-400 py-2 border-t border-gray-50">
+                                ${new Date(loan.returnDate).toLocaleDateString('tr-TR')} tarihinde iade edildi.
+                             </div>
+                        `}
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        window.handleReturn = async (id) => {
+            if(await returnBook(id)) renderLoans();
+        };
+
+        init();
+    </script>
+</body>
+</html>
