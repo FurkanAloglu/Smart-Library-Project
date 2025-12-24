@@ -1,60 +1,150 @@
 <!DOCTYPE html>
 <html lang="tr">
-  
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş Yap</title>
+    <title>Akıllı Kütüphane Sistemi | Giriş</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake { animation: shake 0.4s ease-in-out; }
+    </style>
 </head>
-<body class="bg-gray-900 flex items-center justify-center h-screen">
+<body class="bg-slate-900 h-screen flex overflow-hidden">
 
-    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-96 border border-gray-700">
-        <h2 class="text-2xl font-bold text-white mb-6 text-center">Kütüphane Sistemi<br>Giriş Yapın</h2>
+    <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden border-r border-slate-800">
+        <img src="./assets/js/library-bg.jpg" alt="Kütüphane" class="absolute inset-0 w-full h-full object-cover">
+        <div class="absolute inset-0 bg-slate-900/65 backdrop-blur-[1px]"></div> 
         
-        <form id="loginForm" class="space-y-4">
-            <div>
-                <label class="block text-gray-400 text-sm mb-1">Email</label>
-                <input type="email" id="email" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" placeholder="example@mail.com" required>
+        <div class="relative z-10 flex flex-col justify-between p-20 text-white w-full">
+            <div class="flex items-center gap-4">
+                <div class="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30">
+                    <i class="fa-solid fa-university text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black tracking-tighter uppercase">Akıllı <span class="text-blue-500">Kütüphane</span></h1>
+                    <p class="text-xs text-slate-400 font-bold tracking-[0.2em] uppercase">Yönetim Sistemi</p>
+                </div>
             </div>
             
-            <div>
-                <label class="block text-gray-400 text-sm mb-1">Şifre</label>
-                <input type="password" id="password" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" placeholder="••••••••" required>
+            <div class="min-h-[200px] flex flex-col justify-center">
+                <div id="quote-container" class="opacity-0 transition-opacity duration-1000 ease-in-out max-w-lg">
+                    <p id="quote-text" class="text-3xl text-slate-100 italic mb-4 leading-snug font-light"></p>
+                    <div class="flex justify-end">
+                        <div id="quote-author" class="text-blue-400 font-bold tracking-widest uppercase text-[11px] border-r-2 border-blue-500 pr-3 text-right"></div>
+                    </div>
+                </div>
             </div>
 
-            <div id="errorMessage" class="text-red-500 text-sm text-center hidden"></div>
+            <div class="text-slate-500 text-[10px] font-medium uppercase tracking-[0.3em]">
+                &copy; 2025 | Tüm Hakları Saklıdır
+            </div>
+        </div>
+    </div>
 
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200">
-               - Giriş Yap -
-            </button>
-        </form>
+    <div class="w-full lg:w-1/2 flex items-center justify-center bg-white p-8 md:p-16">
+        <div class="w-full max-w-md">
+            <div class="lg:hidden flex flex-col items-center mb-10">
+                <div class="bg-blue-600 p-4 rounded-2xl text-white shadow-lg mb-4">
+                    <i class="fa-solid fa-university text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900">AKILLI KÜTÜPHANE</h1>
+            </div>
+
+            <div class="mb-10 text-center lg:text-left">
+                <h2 class="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Sisteme Giriş</h2>
+                <p class="text-slate-500 font-medium">Kullanıcı Bilgileriniz İle Oturum Açınız</p>
+            </div>
+
+            <form id="loginForm" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-slate-700 ml-1">E-posta Adresi</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        <input type="email" id="email" 
+                            class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all duration-200" 
+                            placeholder="example@mail.com" required>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <label class="text-sm font-bold text-slate-700 ml-1">Şifre</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        <input type="password" id="password" 
+                            class="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all duration-200" 
+                            placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div id="errorMessage" class="text-rose-500 text-sm font-bold bg-rose-50 p-4 rounded-xl border border-rose-100 hidden animate-shake"></div>
+
+                <div class="space-y-4">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-1 active:scale-95">
+                       Oturum Aç
+                    </button>
+                    
+                    <p class="text-center text-slate-500 text-sm font-medium">
+                        Henüz hesabınız yok mu? 
+                        <a href="register.html" class="text-blue-600 font-bold hover:text-blue-800 transition-colors ml-1">Kayıt Olun</a>
+                    </p>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script type="module">
         import { request } from './assets/js/api.js';
+
+        const quotes = [
+            { text: "\"Düşünüyorum, öyleyse varım.\"", author: "René Descartes" },
+            { text: "\"Bilgi, insanı şüpheden kurtarır.\"", author: "MEVLÂNÂ CELÂLEDDÎN-i RÛMÎ" },
+            { text: "\"Bilgi, ruhun gözüdür.\"", author: "Platon" },
+            { text: "\"İlim, Çin’de dahi olsa gidip alınız.\"", author: "Hz. Muhammed (s.a.v.)" },
+            { text: "\"Sorgulanmayan bir hayat, yaşanmaya değer değildir.\"", author: "Sokrates" },
+            { text: "\"Bilmek, insan ruhunun en büyük hazıdır.\"", author: "Aristoteles" },
+            { text: "\"Okumak bir insanı tam kılar, konuşmak hazırlıklı kılar, yazmak ise kesin kılar.\"", author: "Francis Bacon" }
+        ];
+
+        let currentIdx = 0;
+        const container = document.getElementById('quote-container');
+        const textEl = document.getElementById('quote-text');
+        const authorEl = document.getElementById('quote-author');
+
+        function rotateQuotes() {
+            container.classList.add('opacity-0');
+            setTimeout(() => {
+                const q = quotes[currentIdx];
+                textEl.textContent = q.text;
+                authorEl.textContent = q.author;
+                container.classList.remove('opacity-0');
+                currentIdx = (currentIdx + 1) % quotes.length;
+            }, 1000);
+        }
+
+        rotateQuotes();
+        setInterval(rotateQuotes, 6000);
 
         const loginForm = document.getElementById('loginForm');
         const errorDiv = document.getElementById('errorMessage');
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
             errorDiv.classList.add('hidden');
-            errorDiv.textContent = '';
-
             try {
                 const user = await request('/auth/login', 'POST', { email, password });
-                
-                console.log("Giriş Başarılı:", user);
-
                 window.location.href = 'dashboard.html';
-                
             } catch (err) {
-                errorDiv.textContent = err.message;
+                errorDiv.textContent = err.message || "Kimlik doğrulama başarısız.";
                 errorDiv.classList.remove('hidden');
             }
         });

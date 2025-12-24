@@ -13,7 +13,7 @@ export async function getAllBooks() {
 
 // 2. Kitap Sil
 export async function deleteBook(id) {
-    if (!confirm("Bu kitabı silmek istediğine emin misin Reis?")) return false;
+    if (!confirm("Bu kitabı silmek istediğine emin misiniz?")) return false;
     try {
         await request(`/books/${id}`, 'DELETE');
         return true;

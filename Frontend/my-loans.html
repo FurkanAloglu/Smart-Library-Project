@@ -67,8 +67,8 @@
                         
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h3 class="font-bold text-lg text-gray-900">${loan.bookName || 'Kitap ID: ' + loan.bookId.substring(0,5)}...</h3>
-                                <p class="text-xs text-gray-500">İşlem ID: #${loan.id.substring(0,8)}</p>
+                                <h3 class="font-bold text-lg text-gray-900">${loan.bookTitle}</h3>
+                                <p class="text-xs text-gray-500">ISBN: ${loan.bookIsbn}</p>
                             </div>
                             <span class="${isReturned ? 'bg-gray-100 text-gray-600' : (isLate ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')} text-xs font-bold px-2 py-1 rounded">
                                 ${isReturned ? 'İade Edildi' : (isLate ? 'GECİKTİ' : 'Okunuyor')}
