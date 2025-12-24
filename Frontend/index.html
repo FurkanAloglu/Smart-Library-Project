@@ -1,13 +1,63 @@
 <!DOCTYPE html>
 <html lang="tr">
+  
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Library</title>
-  <link rel="stylesheet" href="css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Smart Library</h1>
+<body class="bg-gray-900 flex items-center justify-center h-screen">
 
-  <script src="js/main.js"></script>
+    <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-96 border border-gray-700">
+        <h2 class="text-2xl font-bold text-white mb-6 text-center">Kütüphane Sistemi<br>Giriş Yapın</h2>
+        
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="block text-gray-400 text-sm mb-1">Email</label>
+                <input type="email" id="email" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" placeholder="example@mail.com" required>
+            </div>
+            
+            <div>
+                <label class="block text-gray-400 text-sm mb-1">Şifre</label>
+                <input type="password" id="password" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" placeholder="••••••••" required>
+            </div>
+
+            <div id="errorMessage" class="text-red-500 text-sm text-center hidden"></div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200">
+               - Giriş Yap -
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { request } from './assets/js/api.js';
+
+        const loginForm = document.getElementById('loginForm');
+        const errorDiv = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+
+            try {
+                const user = await request('/auth/login', 'POST', { email, password });
+                
+                console.log("Giriş Başarılı:", user);
+
+                window.location.href = 'dashboard.html';
+                
+            } catch (err) {
+                errorDiv.textContent = err.message;
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
