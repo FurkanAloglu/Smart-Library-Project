@@ -3,55 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kütüphane - Kitaplar</title>
+    <title>Kütüphane - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp 0.4s ease-out forwards; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-    <main class="container mx-auto px-6 py-8 animate-fade-in">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-3xl font-bold text-gray-900">Kitap Arşivi</h2>
+    <main class="container mx-auto px-6 py-8 animate-fade-up">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Kitap Arşivi</h2>
+                <p class="text-slate-500 mt-1">Kütüphane envanterini buradan yönet.</p>
+            </div>
+            
             <button id="addBookBtn" class="hidden bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> Yeni Kitap
+                <i class="fa-solid fa-plus"></i> <span class="font-medium">Kitap Ekle</span>
             </button>
         </div>
 
-        <div id="tableCard" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hidden">
-            <table class="w-full text-left">
-                <thead class="bg-gray-50 text-gray-500 text-xs uppercase border-b">
-                    <tr>
-                        <th class="px-6 py-4">Kitap</th>
-                        <th class="px-6 py-4">Yazar</th>
-                        <th class="px-6 py-4">Kategori</th>
-                        <th class="px-6 py-4 text-center">Stok</th>
-                        <th class="px-6 py-4 text-right">İşlem</th>
-                    </tr>
-                </thead>
-                <tbody id="bookListBody" class="divide-y divide-gray-100 text-sm"></tbody>
-            </table>
+        <div id="tableCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 w-20">Kapak</th> <th class="px-6 py-4">Kitap Bilgisi</th>
+                            <th class="px-6 py-4">Yazar & Kategori</th>
+                            <th class="px-6 py-4 text-center">Stok</th>
+                            <th class="px-6 py-4 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookListBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                </table>
+            </div>
         </div>
 
-        <div id="loading" class="text-center py-20 text-gray-500">Yükleniyor...</div>
-        <div id="emptyMessage" class="hidden text-center py-20 text-gray-500">Kitap bulunamadı.</div>
+        <div id="loading" class="text-center py-20 text-slate-400 flex flex-col items-center">
+            <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i> Veriler yükleniyor...
+        </div>
+        <div id="emptyMessage" class="hidden text-center py-20 text-slate-500">Kütüphanede kitap yok.</div>
+
     </main>
 
-    <div id="addBookModal" class="hidden">...</div> <script type="module">
+    <div id="addBookModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col md:flex-row overflow-hidden max-h-[90vh]" id="modalPanel">
+                
+                <div class="hidden md:flex w-1/3 bg-slate-100 items-center justify-center p-6 border-r border-slate-200 relative">
+                    <div id="coverPreview" class="text-slate-400 text-center">
+                        <i class="fa-solid fa-book-open text-5xl mb-3"></i>
+                        <p class="text-sm">ISBN girince kapak burada görünecek</p>
+                    </div>
+                    <img id="coverImage" src="" class="hidden shadow-lg rounded-lg max-h-64 object-cover w-auto animate-fade-up">
+                </div>
+
+                <div class="w-full md:w-2/3 flex flex-col">
+                    <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 class="text-xl font-bold text-slate-800">Yeni Kitap Ekle</h3>
+                        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                    </div>
+
+                    <div class="p-8 overflow-y-auto custom-scrollbar flex-grow">
+                        <form id="addBookForm" class="space-y-5">
+                            <input type="hidden" name="imageUrl" id="imageUrlInput">
+
+                            <div class="relative">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">ISBN Numarası</label>
+                                <div class="flex gap-2">
+                                    <input type="text" name="isbn" id="isbnInput" required placeholder="978..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                                    <button type="button" id="fetchCoverBtn" class="bg-blue-50 text-blue-600 px-4 rounded-xl hover:bg-blue-100 transition text-sm font-bold">
+                                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Kapak Bul
+                                    </button>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-1">Örn: 9789750719387 (Simyacı)</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Kitap Adı</label>
+                                <input type="text" name="title" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Stok</label><input type="number" name="stock" value="1" min="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none"></div>
+                            </div>
+
+                            <div class="relative z-20">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Yazarlar</label>
+                                <div id="authorTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px]"><input type="text" id="authorSearchInput" placeholder="Ara..." class="bg-transparent outline-none flex-grow min-w-[80px] px-2 text-sm"></div>
+                                <input type="hidden" name="authorIds" id="hiddenAuthorIds">
+                                <div id="authorDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50"></div>
+                            </div>
+                            <div class="relative z-10">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Kategoriler</label>
+                                <div id="categoryTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px]"><input type="text" id="categorySearchInput" placeholder="Ara..." class="bg-transparent outline-none flex-grow min-w-[80px] px-2 text-sm"></div>
+                                <input type="hidden" name="categoryIds" id="hiddenCategoryIds">
+                                <div id="categoryDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50"></div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Açıklama</label>
+                                <textarea name="description" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none resize-none"></textarea>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="px-8 py-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                        <button type="button" id="cancelBtn" class="px-6 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-medium">İptal</button>
+                        <button type="submit" form="addBookForm" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-lg font-medium">Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[60] flex flex-col gap-2"></div>
+
+    <script type="module">
         import { loadNavbar, showToast } from './assets/js/layout.js';
         import { getAllBooks, deleteBook, createBook, getAuthors, getCategories } from './assets/js/book.js';
-        import { borrowBook } from './assets/js/borrowing.js'; // YENİ
+        import { borrowBook } from './assets/js/borrowing.js';
+        import { fetchBookCover } from './assets/js/google-books.js'; // YENİ
 
         let currentUser = null;
+        let authorSelect, categorySelect;
 
+        // --- MultiSelect Class (Önceki kodun aynısı) ---
+        class MultiSelect {
+            constructor(cId, iId, dId, hId, fetcher) {
+                this.c = document.getElementById(cId); this.i = document.getElementById(iId);
+                this.d = document.getElementById(dId); this.h = document.getElementById(hId);
+                this.f = fetcher; this.sel = new Map(); this.all = []; this.init();
+            }
+            async init() {
+                this.i.addEventListener('focus', async () => { if(this.all.length===0) this.all = await this.f(); this.rend(); });
+                this.i.addEventListener('input', (e) => this.rend(e.target.value));
+                document.addEventListener('click', (e) => { if(!this.c.contains(e.target) && !this.d.contains(e.target)) this.d.classList.add('hidden'); });
+                this.c.addEventListener('click', () => this.i.focus());
+            }
+            rend(txt='') {
+                this.d.innerHTML=''; const res = this.all.filter(x=>x.name.toLowerCase().includes(txt.toLowerCase()) && !this.sel.has(x.id));
+                if(res.length===0) this.d.innerHTML='<div class="p-3 text-slate-400 text-sm text-center">Sonuç yok</div>';
+                else res.forEach(x => {
+                    const el=document.createElement('div'); el.className='px-4 py-3 cursor-pointer text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition border-b border-slate-50';
+                    el.textContent=x.name; el.onclick=()=>{this.add(x)}; this.d.appendChild(el);
+                });
+                this.d.classList.remove('hidden');
+            }
+            add(item) { this.sel.set(item.id, item.name); this.upd(); this.i.value=''; this.i.focus(); }
+            rem(id) { this.sel.delete(id); this.upd(); }
+            upd() {
+                this.c.querySelectorAll('.tag-chip').forEach(t=>t.remove());
+                this.sel.forEach((n,id)=>{
+                    const el=document.createElement('div'); el.className='tag-chip bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border border-blue-100';
+                    el.innerHTML=`${n} <button type="button" class="hover:text-blue-900"><i class="fa-solid fa-xmark"></i></button>`;
+                    el.querySelector('button').onclick=(e)=>{e.stopPropagation();this.rem(id)}; this.c.insertBefore(el,this.i);
+                });
+                this.h.value=Array.from(this.sel.keys()).join(',');
+            }
+            getIds(){return Array.from(this.sel.keys())} reset(){this.sel.clear();this.upd()}
+        }
+
+        // --- ANA AKIŞ ---
         async function init() {
-            // Navbar'ı yükle ve user bilgisini al
             currentUser = await loadNavbar();
             
             if (currentUser.role === 'ADMIN') {
-                document.getElementById('addBookBtn').classList.remove('hidden');
-                // Modal event listener'larını burada tanımla...
+                const addBtn = document.getElementById('addBookBtn');
+                addBtn.classList.remove('hidden');
+                addBtn.addEventListener('click', () => {
+                    openModal();
+                    if (!authorSelect) {
+                        authorSelect = new MultiSelect('authorTagsContainer', 'authorSearchInput', 'authorDropdownList', 'hiddenAuthorIds', getAuthors);
+                        categorySelect = new MultiSelect('categoryTagsContainer', 'categorySearchInput', 'categoryDropdownList', 'hiddenCategoryIds', getCategories);
+                    }
+                });
             }
-
             await renderBooks();
         }
 
@@ -59,28 +192,47 @@
             const tbody = document.getElementById('bookListBody');
             tbody.innerHTML = '';
             document.getElementById('loading').classList.add('hidden');
-            document.getElementById('tableCard').classList.remove('hidden');
-
+            
             const books = await getAllBooks();
+            if (books.length === 0) {
+                document.getElementById('emptyMessage').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('tableCard').classList.remove('hidden');
             
             books.forEach(book => {
+                const authorNames = book.authors?.map(a=>a.name).join(', ') || '-';
+                
+                // Varsayılan Kapak (Eğer yoksa)
+                const imgUrl = book.imageUrl || 'https://via.placeholder.com/100x150?text=No+Image';
+
                 const row = `
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 font-medium">${book.title}</td>
-                        <td class="px-6 py-4 text-gray-600">${book.authors?.map(a=>a.name).join(', ')}</td>
-                        <td class="px-6 py-4"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${book.categories?.map(c=>c.name).join(' ')}</span></td>
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0 group">
+                        <td class="px-6 py-4">
+                            <img src="${imgUrl}" class="h-16 w-12 object-cover rounded shadow-sm border border-slate-200">
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-slate-800 text-base">${book.title}</span>
+                                <span class="text-xs text-slate-400 font-mono">ISBN: ${book.isbn || 'Yok'}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-slate-600 mb-1"><i class="fa-solid fa-pen-nib text-slate-400 mr-1"></i>${authorNames}</div>
+                            <div class="flex flex-wrap gap-1">
+                                ${book.categories?.map(c => `<span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] text-slate-500 border border-slate-200">${c.name}</span>`).join('')}
+                            </div>
+                        </td>
                         <td class="px-6 py-4 text-center">
-                            <span class="${book.stock > 0 ? 'text-green-600' : 'text-red-600 font-bold'}">${book.stock}</span>
+                            <span class="${book.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'} px-2.5 py-1 rounded-full text-xs font-bold border border-opacity-20">
+                                ${book.stock}
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            ${currentUser.role === 'ADMIN' ? `
-                                <button onclick="window.handleDelete('${book.id}')" class="text-red-500 hover:text-red-700">Sil</button>
+                             ${currentUser.role === 'ADMIN' ? `
+                                <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 p-2 transition"><i class="fa-solid fa-trash-can"></i></button>
                             ` : `
-                                <button onclick="window.handleBorrow('${book.id}')" 
-                                    class="${book.stock > 0 ? 'text-blue-600 hover:text-blue-800' : 'text-gray-400 cursor-not-allowed'} font-medium" 
-                                    ${book.stock <= 0 ? 'disabled' : ''}>
-                                    ${book.stock > 0 ? 'Ödünç Al' : 'Tükendi'}
-                                </button>
+                                <button onclick="window.handleBorrow('${book.id}')" class="${book.stock > 0 ? 'text-blue-600' : 'text-slate-300'} font-bold text-sm" ${book.stock <= 0 ? 'disabled' : ''}>Ödünç Al</button>
                             `}
                         </td>
                     </tr>
@@ -89,13 +241,64 @@
             });
         }
 
-        // Global Fonksiyonlar
-        window.handleDelete = async (id) => { if(await deleteBook(id)) renderBooks(); };
-        
-        // YENİ: Ödünç Alma Global Fonksiyonu
-        window.handleBorrow = async (id) => { 
-            if(await borrowBook(id)) renderBooks(); 
-        };
+        // --- GOOGLE COVER FETCH ---
+        document.getElementById('fetchCoverBtn').addEventListener('click', async () => {
+            const isbn = document.getElementById('isbnInput').value;
+            const btn = document.getElementById('fetchCoverBtn');
+            const preview = document.getElementById('coverImage');
+            const placeholder = document.getElementById('coverPreview');
+            const urlInput = document.getElementById('imageUrlInput');
+
+            if(!isbn) { showToast("Önce ISBN gir Reis!", "error"); return; }
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Aranıyor...';
+            const url = await fetchBookCover(isbn);
+            
+            if(url) {
+                preview.src = url;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                urlInput.value = url; // Form'a ekle
+                showToast("Kapak bulundu!", "success");
+            } else {
+                showToast("Kapak bulunamadı, elle yükle.", "info");
+                preview.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+            }
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Kapak Bul';
+        });
+
+        // --- FORM SUBMIT (Updated with imageUrl) ---
+        document.getElementById('addBookForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); const fd = new FormData(e.target);
+            const aIds = authorSelect.getIds(); const cIds = categorySelect.getIds();
+            
+            if(aIds.length===0 || cIds.length===0) { showToast("Yazar ve Kategori seç!", "error"); return; }
+            
+            const bookData = {
+                title:fd.get('title'), isbn:fd.get('isbn'), stock:parseInt(fd.get('stock')), 
+                description:fd.get('description'), authorIds:aIds, categoryIds:cIds,
+                imageUrl: fd.get('imageUrl') // <--- YENİ ALAN
+            };
+
+            if(await createBook(bookData)) {
+                showToast("Kitap Eklendi!", "success"); closeModal(); e.target.reset(); authorSelect.reset(); categorySelect.reset();
+                document.getElementById('coverImage').classList.add('hidden'); 
+                document.getElementById('coverPreview').classList.remove('hidden');
+                await renderBooks();
+            }
+        });
+
+        // Modal Helpers
+        const modal = document.getElementById('addBookModal');
+        const backdrop = document.getElementById('modalBackdrop');
+        const panel = document.getElementById('modalPanel');
+        function openModal() { modal.classList.remove('hidden'); setTimeout(() => { backdrop.classList.remove('opacity-0'); panel.classList.remove('scale-95', 'opacity-0'); }, 10); }
+        function closeModal() { backdrop.classList.add('opacity-0'); panel.classList.add('scale-95', 'opacity-0'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+        window.handleDelete = async (id) => { if(await deleteBook(id)) { showToast("Silindi", "success"); await renderBooks(); } };
+        window.handleBorrow = async (id) => { if(await borrowBook(id)) await renderBooks(); };
 
         init();
     </script>
