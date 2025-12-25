@@ -1,25 +1,39 @@
-CREATE OR REPLACE FUNCTION project1.calculate_penalty(
-    p_borrowing_id UUID,
-    p_daily_fee NUMERIC
-)
-RETURNS VOID AS $$
+-- Önce eski manuel fonksiyon varsa temizleyelim (Çakışma olmasın)
+DROP FUNCTION IF EXISTS calculate_penalty;
+
+-- Yeni Trigger Fonksiyonu (Otomatik Ceza Hesaplayıcı)
+CREATE OR REPLACE FUNCTION calculate_penalty_trigger_fn()
+RETURNS TRIGGER AS $$
 DECLARE
-v_due_date DATE;
-    v_returned_date DATE;
-    v_days_late INT;
+v_days_late INT;
+    v_penalty_amount DECIMAL(10,2);
+    v_daily_fee DECIMAL(10,2) := 5.0; -- Günlük Ceza Tutarı (Sabit)
 BEGIN
-SELECT due_date, returned_at
-INTO v_due_date, v_returned_date
-FROM project1.borrowings
-WHERE id = p_borrowing_id;
+    -- Sadece iade işlemi yapıldığında (return_date NULL'dan doluya döndüğünde) çalışır
+    IF OLD.return_date IS NULL AND NEW.return_date IS NOT NULL THEN
+        
+        -- Gecikme kontrolü: İade Tarihi > Son Teslim Tarihi ise
+        IF NEW.return_date > NEW.due_date THEN
+            -- Gün farkını al
+            v_days_late := NEW.return_date - NEW.due_date;
+            
+            -- Ceza varsa hesapla ve penalties tablosuna yaz
+            IF v_days_late > 0 THEN
+                v_penalty_amount := v_days_late * v_daily_fee;
 
-IF v_returned_date IS NULL OR v_returned_date <= v_due_date THEN
-        RETURN;
+INSERT INTO penalties (id, borrowing_id, amount, created_at)
+VALUES (gen_random_uuid(), NEW.id, v_penalty_amount, CURRENT_TIMESTAMP);
 END IF;
-
-    v_days_late := v_returned_date - v_due_date;
-
-INSERT INTO project1.penalties (id, borrowing_id, amount)
-VALUES (gen_random_uuid(), p_borrowing_id, v_days_late * p_daily_fee);
+END IF;
+END IF;
+RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Trigger'ı 'borrowings' tablosuna bağla
+DROP TRIGGER IF EXISTS trg_calculate_penalty_on_return ON borrowings;
+
+CREATE TRIGGER trg_calculate_penalty_on_return
+    AFTER UPDATE ON borrowings
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_penalty_trigger_fn();

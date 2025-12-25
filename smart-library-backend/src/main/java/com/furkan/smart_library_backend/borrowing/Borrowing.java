@@ -9,7 +9,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -34,13 +33,13 @@ public class Borrowing {
     private Book book;
 
     @Column(name = "borrow_date", nullable = false)
-    private LocalDate borrowDate;
+    private LocalDateTime borrowDate;
 
     @Column(name = "due_date", nullable = false)
-    private LocalDate dueDate;
+    private LocalDateTime dueDate;
 
     @Column(name = "return_date")
-    private LocalDate returnDate;
+    private LocalDateTime returnDate;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

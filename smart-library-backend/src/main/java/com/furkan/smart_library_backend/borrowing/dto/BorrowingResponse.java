@@ -1,7 +1,7 @@
 package com.furkan.smart_library_backend.borrowing.dto;
 
 import com.furkan.smart_library_backend.borrowing.Borrowing;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record BorrowingResponse(
@@ -10,9 +10,9 @@ public record BorrowingResponse(
         String bookIsbn,
         String bookImageUrl,
         String userName,
-        LocalDate borrowDate,
-        LocalDate dueDate,
-        LocalDate returnDate,
+        LocalDateTime borrowDate,
+        LocalDateTime dueDate,
+        LocalDateTime returnDate,
         boolean isReturned
 ) {
     public static BorrowingResponse fromEntity(Borrowing borrowing) {

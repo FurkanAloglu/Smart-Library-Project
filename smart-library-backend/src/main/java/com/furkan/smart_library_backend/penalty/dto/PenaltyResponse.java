@@ -2,15 +2,15 @@ package com.furkan.smart_library_backend.penalty.dto;
 
 import com.furkan.smart_library_backend.penalty.Penalty;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record PenaltyResponse(
         UUID id,
         BigDecimal amount,
         String bookTitle,
-        LocalDate returnDate,
-        LocalDate dueDate
+        LocalDateTime returnDate,
+        LocalDateTime dueDate
 ) {
     public static PenaltyResponse fromEntity(Penalty penalty) {
         return new PenaltyResponse(

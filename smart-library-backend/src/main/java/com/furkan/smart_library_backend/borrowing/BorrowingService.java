@@ -12,8 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+
+import java.time.LocalDateTime; // DEĞİŞTİ: Artık tarih+saat tutuyoruz
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +26,8 @@ public class BorrowingService {
     private final UserRepository userRepository;
     private final MailService mailService;
 
-    private static final BigDecimal DAILY_FEE = BigDecimal.valueOf(5.0);
+    // public static final BigDecimal DAILY_FEE... -> SİLDİM.
+    // Çünkü artık ücreti Veritabanı Trigger'ı biliyor, Java'nın bilmesine gerek yok.
 
     public List<BorrowingResponse> getMyBorrowings(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
@@ -65,8 +66,8 @@ public class BorrowingService {
         Borrowing borrowing = Borrowing.builder()
                 .user(user)
                 .book(book)
-                .borrowDate(LocalDate.now())
-                .dueDate(LocalDate.now().plusDays(15))
+                .borrowDate(LocalDateTime.now())
+                .dueDate(LocalDateTime.now().plusMinutes(1))
                 .build();
 
         Borrowing saved = borrowingRepository.save(borrowing);
@@ -82,12 +83,15 @@ public class BorrowingService {
             throw new IllegalStateException("Book already returned");
         }
 
-        borrowing.setReturnDate(LocalDate.now());
+        // DEĞİŞTİ: İade anının saat ve dakikasını basıyoruz
+        borrowing.setReturnDate(LocalDateTime.now());
         borrowingRepository.save(borrowing);
 
+        // DEĞİŞTİ: Değişikliği anında veritabanına itiyoruz ki TRIGGER uyansın.
         borrowingRepository.flush();
 
-        borrowingRepository.callCalculatePenalty(borrowing.getId(), DAILY_FEE);
+        // SİLİNDİ: borrowingRepository.callCalculatePenalty(...)
+        // Artık Java hesaplamıyor, veritabanı kendi hallediyor.
 
         if (borrowing.getReturnDate().isAfter(borrowing.getDueDate())) {
             mailService.sendLateReturnNotification(
