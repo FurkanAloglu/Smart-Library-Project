@@ -171,9 +171,10 @@
     import { loadNavbar, showToast } from './assets/js/layout.js';
     import { getAllBooks, deleteBook, getAuthors, getCategories, createBook } from './assets/js/book.js';
     import { borrowBook } from './assets/js/borrowing.js';
-    import { fetchBookDetails } from './assets/js/google-books.js'; // İSİM DEĞİŞTİ: fetchBookCover -> fetchBookDetails
+    import { fetchBookDetails } from './assets/js/google-books.js';
     import { request } from './assets/js/api.js';
 
+    let editingBookId = null;
     let currentUser = null;
     let allBooks = []; 
     const itemsPerPage = 12;
@@ -181,7 +182,6 @@
 
     const cache = { authors: [], categories: [] };
 
-    // --- GENEL MODAL AÇ/KAPA YARDIMCISI ---
     function toggleModal(modalId, show) {
         const modal = document.getElementById(modalId);
         const backdrop = modal.querySelector('.modal-backdrop');
@@ -202,8 +202,6 @@
         }
     }
 
-    // --- INFINITE SCROLL + SEARCH SELECT ENGINE ---
-    // GÜNCELLEME: Artık dışarıdan item seçilebilmesi için selectExternal fonksiyonunu dışarı açıyor.
     function setupPaginatedSelect(type, config) {
         const { searchId, dropdownId, containerId, hiddenId } = config;
         const searchInput = document.getElementById(searchId);
@@ -275,7 +273,6 @@
             if (!tagsContainer.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
         });
 
-        // GÜNCELLENDİ: Artık bir obje dönüyor
         return {
             reset: () => {
                 selectedIds = [];
@@ -286,64 +283,84 @@
         };
     }
 
-    // --- APP BAŞLATMA ---
+    // GLOBAL SCOPE: arkadaşın dediği gibi burada dursunlar
+    const authorSelectControl = setupPaginatedSelect('authors', {
+        searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
+        containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
+    });
+    const categorySelectControl = setupPaginatedSelect('categories', {
+        searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
+        containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
+    });
+
     async function init() {
         try {
             currentUser = await loadNavbar();
             if (currentUser?.role === 'ADMIN') {
                 document.getElementById('adminButtonParams').classList.remove('hidden');
             }
-            
+
+            // 1. ÖNCE BUTONLARI BAĞLA (Veri gelmese bile çalışsınlar)
+            // Bu fonksiyonları init'in en tepesine aldık ki hata olsa bile butonlar bassın.
+            setupBookModalLogic(authorSelectControl, categorySelectControl);
+            setupExtraModals();
+
+            // 2. SONRA VERİLERİ ÇEK (Hata olursa catch'e düşer ama butonlar çoktan bağlandı)
             const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
             cache.authors = authors; cache.categories = categories;
 
-            // Select Yapılarını Kur
-            // GÜNCELLEME: Değişkenler artık birer obje
-            const authorSelectControl = setupPaginatedSelect('authors', {
-                searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
-                containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
-            });
-            const categorySelectControl = setupPaginatedSelect('categories', {
-                searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
-                containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
-            });
-
-            setupBookModalLogic(authorSelectControl, categorySelectControl);
-            setupExtraModals();
             await refreshData();
 
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Başlangıç hatası:", e); 
+            // Hata olsa bile kullanıcıya gösterelim
+            showToast("Veriler yüklenirken hata oluştu: " + e.message, "error");
+        }
     }
 
-    // --- KİTAP EKLEME MODALI ---
     function setupBookModalLogic(authorSelectControl, categorySelectControl) {
         const modalId = 'addBookModal';
         const form = document.getElementById('addBookForm');
 
-        document.getElementById('addBookBtn').onclick = () => toggleModal(modalId, true);
+        document.getElementById('addBookBtn').onclick = () => {
+            // "Yeni" moda geç
+            editingBookId = null;
+            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
+            toggleModal(modalId, true);
+        };
 
         document.querySelectorAll('.closeModalBtn').forEach(btn => 
             btn.onclick = () => {
                 toggleModal(modalId, false);
-                // GÜNCELLEME: Reset fonksiyonları obje üzerinden çağrılıyor
-                setTimeout(() => { form.reset(); authorSelectControl.reset(); categorySelectControl.reset(); }, 300);
+                setTimeout(() => { 
+                    form.reset(); 
+                    authorSelectControl.reset(); 
+                    categorySelectControl.reset(); 
+                    editingBookId = null;
+                    // kapak UI reset
+                    document.getElementById('coverImage').src = "";
+                    document.getElementById('coverImage').classList.add('hidden');
+                    document.getElementById('coverPreview').classList.remove('hidden');
+                    document.getElementById('imageUrlInput').value = "";
+                    // başlık/btn reset
+                    document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+                    document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
+                }, 300);
             }
         );
 
-        // --- YENİ MANTIK: GOOGLE BOOKS OTOMASYONU ---
         document.getElementById('fetchCoverBtn').onclick = async () => {
             const btn = document.getElementById('fetchCoverBtn');
             const isbn = document.getElementById('isbnInput').value;
             
             if (!isbn) return showToast("Lütfen ISBN girin", "info");
             
-            // UI Feedback
             const originalText = btn.innerText;
             btn.innerText = "Getiriliyor...";
             btn.disabled = true;
 
             try {
-                // google-books.js içinde güncellenmiş fonksiyonu çağırıyoruz
                 const data = await fetchBookDetails(isbn);
                 
                 if (!data) {
@@ -351,7 +368,6 @@
                     return;
                 }
 
-                // 1. Text Alanlarını Doldur
                 document.querySelector('[name=title]').value = data.title;
                 document.querySelector('[name=description]').value = 
                     (data.description ? data.description.substring(0, 300) + "..." : "") + 
@@ -364,7 +380,6 @@
                     document.getElementById('coverPreview').classList.add('hidden');
                 }
 
-                // 2. YAZARLARI İŞLE (Bul veya Oluştur)
                 for (const authName of data.authors) {
                     let existing = cache.authors.find(a => a.name.toLowerCase() === authName.toLowerCase());
                     
@@ -378,9 +393,8 @@
                     if (existing) authorSelectControl.selectExternal(existing);
                 }
 
-                // 3. KATEGORİLERİ İŞLE (Bul veya Oluştur)
                 for (const catName of data.categories) {
-                    const cleanCatName = catName.split('/')[0].trim(); // Basitleştirme
+                    const cleanCatName = catName.split('/')[0].trim();
                     let existing = cache.categories.find(c => c.name.toLowerCase() === cleanCatName.toLowerCase());
                     
                     if (!existing) {
@@ -405,25 +419,69 @@
         };
 
         form.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(form));
-            data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
-            data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
-            data.stock = parseInt(data.stock);
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(form));
+    
+    // String gelen ID array'lerini JSON parse et
+    data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
+    data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
+    data.stock = parseInt(data.stock);
 
-            if (await createBook(data)) { 
-                showToast("Kitap Sisteme Eklendi", "success"); 
-                toggleModal(modalId, false); 
-                // GÜNCELLEME: Reset fonksiyonları obje üzerinden çağrılıyor
-                form.reset(); authorSelectControl.reset(); categorySelectControl.reset();
-                refreshData(); 
-            }
-        };
+    let success = false;
+
+    try {
+        if (editingBookId) {
+            // GÜNCELLEME MODU
+            await import('./assets/js/book.js').then(m => m.updateBook(editingBookId, data));
+            showToast("Kitap başarıyla güncellendi", "success");
+            success = true;
+        } else {
+            // EKLEME MODU
+            success = await createBook(data);
+            if(success) showToast("Kitap sisteme eklendi", "success");
+        }
+
+        if (success) {
+            toggleModal('addBookModal', false);
+            // Modu sıfırla
+            editingBookId = null;
+            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
+            
+            form.reset(); 
+            authorSelectControl.reset(); 
+            categorySelectControl.reset();
+            
+            // Resmi sıfırla
+            document.getElementById('coverImage').classList.add('hidden');
+            document.getElementById('coverPreview').classList.remove('hidden');
+            
+            refreshData(); 
+        }
+    } catch (error) {
+        showToast("İşlem Başarısız: " + error.message, "error");
+    }
+};
+
+// AYRICA: "İptal" veya "X" butonuna basınca editingBookId'yi sıfırlamayı unutma!
+document.querySelectorAll('.closeModalBtn').forEach(btn => 
+    btn.onclick = () => {
+        toggleModal('addBookModal', false);
+        setTimeout(() => { 
+            editingBookId = null; // SIFIRLAMA ÖNEMLİ
+            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
+            form.reset(); 
+            authorSelectControl.reset(); 
+            categorySelectControl.reset(); 
+            document.getElementById('coverImage').classList.add('hidden');
+            document.getElementById('coverPreview').classList.remove('hidden');
+        }, 300);
+    }
+);
     }
 
-    // --- YENİ YAZAR VE KATEGORİ MODALLARI ---
     function setupExtraModals() {
-        // YAZAR
         const authorModalId = 'addAuthorModal';
         const authorForm = document.getElementById('addAuthorForm');
         
@@ -446,7 +504,6 @@
             } catch (err) { showToast(err.message, "error"); }
         };
 
-        // KATEGORİ
         const categoryModalId = 'addCategoryModal';
         const categoryForm = document.getElementById('addCategoryForm');
 
@@ -470,7 +527,6 @@
         };
     }
 
-    // --- DATA LİSTELEME ---
     async function refreshData() {
         const load = document.getElementById('loading');
         load.classList.remove('hidden');
@@ -502,9 +558,17 @@
                 <div class="p-4 flex flex-col flex-grow">
                     <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${book.title}">${book.title}</h3>
                     <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => a.name).join(', ') || 'Bilinmiyor'}</p>
-                    <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center">
+                    <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center gap-2">
                         ${currentUser?.role === 'ADMIN' ? 
-                            `<button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2"><i class="fa-solid fa-trash-can"></i></button>` : 
+                            `<div class="flex justify-end gap-2">
+                                 <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2" title="Düzenle">
+                                   <i class="fa-solid fa-pen-to-square"></i>
+                                 </button>
+                                 <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2" title="Sil">
+                                  <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>`
+                            : 
                             `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition">Ödünç Al</button>`}
                     </div>
                 </div>
@@ -512,6 +576,48 @@
         
         renderPagination();
     }
+
+    // ============================
+    // B. handleEdit Fonksiyonunu Ekleme (arkadaşın dediği gibi renderLocalPage altına)
+    // ============================
+    window.handleEdit = async (id) => {
+        const book = await import('./assets/js/book.js').then(m => m.getBookById(id));
+        if (!book) return showToast("Kitap bilgileri yüklenemedi!", "error");
+
+        // 1) Modu güncelle ve UI'ı hazırla
+        editingBookId = id;
+        document.querySelector('#addBookModal h3').textContent = "Kitap Düzenle";
+        document.querySelector('#addBookForm button[type="submit"]').textContent = "Güncelle";
+
+        // 2) Basit alanları doldur
+        const form = document.getElementById('addBookForm');
+        form.querySelector('[name=isbn]').value = book.isbn ?? "";
+        form.querySelector('[name=title]').value = book.title ?? "";
+        form.querySelector('[name=stock]').value = book.stock ?? 1;
+        form.querySelector('[name=description]').value = book.description || "";
+        form.querySelector('[name=imageUrl]').value = book.imageUrl || "";
+
+        // Kapak resmi varsa göster
+        if (book.imageUrl) {
+            document.getElementById('coverImage').src = book.imageUrl;
+            document.getElementById('coverImage').classList.remove('hidden');
+            document.getElementById('coverPreview').classList.add('hidden');
+        } else {
+            document.getElementById('coverImage').src = "";
+            document.getElementById('coverImage').classList.add('hidden');
+            document.getElementById('coverPreview').classList.remove('hidden');
+        }
+
+        // 3) Karmaşık ilişkiler: Yazarlar & Kategoriler
+        authorSelectControl.reset();
+        categorySelectControl.reset();
+
+        (book.authors || []).forEach(author => authorSelectControl.selectExternal(author));
+        (book.categories || []).forEach(category => categorySelectControl.selectExternal(category));
+
+        // 4) Modali aç
+        toggleModal('addBookModal', true);
+    };
 
     function renderPagination() {
         const total = Math.ceil(allBooks.length / itemsPerPage);
@@ -528,8 +634,23 @@
         }
     }
 
-    window.handleDelete = async (id) => { if(confirm("Emin misiniz?")) { if(await deleteBook(id)) { showToast("Silindi", "success"); refreshData(); } } };
-    window.handleBorrow = async (id) => { if(confirm("Ödünç alıyor musunuz?")) { if(await borrowBook(id)) { showToast("Başarılı", "success"); refreshData(); } } };
+    window.handleDelete = async (id) => {
+        if(confirm("Emin misiniz?")) {
+            if(await deleteBook(id)) {
+                showToast("Silindi", "success");
+                refreshData();
+            }
+        }
+    };
+
+    window.handleBorrow = async (id) => {
+        if(confirm("Ödünç alıyor musunuz?")) {
+            if(await borrowBook(id)) {
+                showToast("Başarılı", "success");
+                refreshData();
+            }
+        }
+    };
 
     init();
 </script>
