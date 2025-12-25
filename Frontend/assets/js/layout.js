@@ -25,13 +25,21 @@ export async function loadNavbar() {
     const navHtml = `
     <nav class="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div class="container mx-auto px-6 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer group" onclick="window.location.href='dashboard.html'">
-                <div class="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-blue-200">
-                    <i class="fa-solid fa-book-open"></i>
-                </div>
-                <h1 class="text-xl font-bold text-gray-800">Smart<span class="text-blue-600">Library</span></h1>
-            </div>
             
+            <div class="flex items-center gap-3 cursor-pointer group select-none" onclick="window.location.href='dashboard.html'">
+                <div class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                    <i class="fa-solid fa-university text-lg"></i>
+                </div>
+                
+                <div class="flex flex-col justify-center">
+                    <h1 class="text-xl font-black tracking-tighter uppercase leading-none text-slate-800 group-hover:text-blue-700 transition-colors">
+                        AKILLI <span class="text-blue-600">KÜTÜPHANE</span>
+                    </h1>
+                    <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-400 mt-0.5 group-hover:text-blue-400 transition-colors">
+                        YÖNETİM SİSTEMİ
+                    </p>
+                </div>
+            </div>
             <div class="flex items-center gap-8">
                 <div class="hidden md:flex items-center gap-6">
                     <a href="dashboard.html" class="text-sm font-medium text-gray-600 hover:text-blue-600 transition">Kitaplar</a>
@@ -45,7 +53,7 @@ export async function loadNavbar() {
                         <span class="font-bold text-gray-800 text-sm">${displayName}</span>
                         ${roleBadge}
                     </div>
-                    <button id="globalLogoutBtn" class="bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 p-2.5 rounded-full transition border border-gray-100">
+                    <button id="globalLogoutBtn" class="bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 p-2.5 rounded-full transition border border-gray-100 group-hover:border-red-200">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>

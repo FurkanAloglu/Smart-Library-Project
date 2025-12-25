@@ -272,8 +272,16 @@ registerForm.addEventListener('submit', async (e) => {
         alert("Kayıt başarılı! Şimdi giriş yapabilirsiniz.");
         window.location.href = 'index.html';
     } catch (err) {
-        errorDiv.textContent = err.message || "Kayıt sırasında bir hata oluştu.";
+        if (err.details) {
+            errorDiv.innerHTML = Object.values(err.details).join('<br>'); 
+        } else {
+            errorDiv.textContent = err.message || "Kayıt sırasında bir hata oluştu.";
+        }
+        
         errorDiv.classList.remove('hidden');
+    
+        errorDiv.classList.add('animate-shake');
+        setTimeout(() => errorDiv.classList.remove('animate-shake'), 500);
     }
 });
 

@@ -31,7 +31,9 @@ async function request(endpoint, method = "GET", body = null) {
         const data = isJson ? await response.json() : null;
 
         if (!response.ok) {
-            throw new Error(data?.message || "Bir hata oluştu");
+            const error = new Error(data?.message || "Bir hata oluştu");
+            error.details = data?.details;
+            throw error;
         }
 
         return data;
