@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kütüphane - Dashboard</title>
+    <title>AKYS | Yönetim Paneli</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -11,40 +12,51 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-up { animation: fadeUp 0.4s ease-out forwards; }
+        .modal-backdrop, .modal-panel { transition: all 0.3s ease-out; }
+        .dropdown-item { transition: background-color 0.2s; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
     <main class="container mx-auto px-6 py-8 animate-fade-up">
         
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-                <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Kitap Arşivi</h2>
-                <p class="text-slate-500 mt-1">Kütüphane envanterini buradan yönet.</p>
+        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">
+            
+            <div class="flex items-center gap-3 select-none cursor-pointer" onclick="window.location.reload()">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-md shadow-blue-200">
+                    <i class="fa-solid fa-university text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800 tracking-tighter leading-none">AKYS</h1>
+                </div>
             </div>
             
-            <button id="addBookBtn" class="hidden bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2">
-                <i class="fa-solid fa-plus"></i> <span class="font-medium">Kitap Ekle</span>
-            </button>
+            <div id="adminButtonParams" class="hidden flex flex-wrap gap-3">
+                <button id="addAuthorBtn" class="bg-white text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-2 font-bold shadow-sm text-sm">
+                    <i class="fa-solid fa-feather-pointed"></i> <span>Yazar Ekle</span>
+                </button>
+                <button id="addCategoryBtn" class="bg-white text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-2 font-bold shadow-sm text-sm">
+                    <i class="fa-solid fa-tags"></i> <span>Kategori Ekle</span>
+                </button>
+                <button id="addBookBtn" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2 transform hover:scale-105 text-sm">
+                    <i class="fa-solid fa-plus"></i> <span class="font-bold">Kitap Ekle</span>
+                </button>
+            </div>
         </div>
 
-   <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden">
-    </div>
-
-<div id="pagination" class="flex justify-center items-center gap-2 mt-12 mb-8 hidden">
-    </div>
+        <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden"></div>
+        <div id="pagination" class="flex justify-center items-center gap-2 mt-12 mb-8 hidden"></div>
 
         <div id="loading" class="text-center py-20 text-slate-400 flex flex-col items-center">
             <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i> Veriler yükleniyor...
         </div>
-        <div id="emptyMessage" class="hidden text-center py-20 text-slate-500">Kütüphanede kitap yok.</div>
-
+        <div id="emptyMessage" class="hidden text-center py-20 text-slate-500">Sistemde henüz kayıtlı kitap bulunmamaktadır.</div>
     </main>
 
     <div id="addBookModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 modal-backdrop"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col md:flex-row overflow-hidden max-h-[90vh]" id="modalPanel">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-95 opacity-0 flex flex-col md:flex-row overflow-hidden max-h-[90vh] modal-panel">
                 
                 <div class="hidden md:flex w-1/3 bg-slate-100 items-center justify-center p-6 border-r border-slate-200 relative">
                     <div id="coverPreview" class="text-slate-400 text-center">
@@ -56,23 +68,20 @@
 
                 <div class="w-full md:w-2/3 flex flex-col">
                     <div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                        <h3 class="text-xl font-bold text-slate-800">Yeni Kitap Ekle</h3>
-                        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                        <h3 class="text-xl font-bold text-slate-800">Yeni Kitap Kaydı</h3>
+                        <button class="closeModalBtn text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
                     </div>
 
                     <div class="p-8 overflow-y-auto custom-scrollbar flex-grow">
                         <form id="addBookForm" class="space-y-5">
                             <input type="hidden" name="imageUrl" id="imageUrlInput">
-
+                            
                             <div class="relative">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">ISBN Numarası</label>
                                 <div class="flex gap-2">
                                     <input type="text" name="isbn" id="isbnInput" required placeholder="978..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
-                                    <button type="button" id="fetchCoverBtn" class="bg-blue-50 text-blue-600 px-4 rounded-xl hover:bg-blue-100 transition text-sm font-bold">
-                                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Kapak Bul
-                                    </button>
+                                    <button type="button" id="fetchCoverBtn" class="bg-blue-50 text-blue-600 px-4 rounded-xl hover:bg-blue-100 transition text-sm font-bold">Kapak Bul</button>
                                 </div>
-                                <p class="text-xs text-slate-400 mt-1">Örn: 9789750719387 (Simyacı)</p>
                             </div>
 
                             <div>
@@ -81,20 +90,25 @@
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Stok</label><input type="number" name="stock" value="1" min="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none"></div>
+                                <div><label class="block text-sm font-medium text-slate-700 mb-1">Stok Adedi</label><input type="number" name="stock" value="1" min="1" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none"></div>
                             </div>
 
                             <div class="relative z-20">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Yazarlar</label>
-                                <div id="authorTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px]"><input type="text" id="authorSearchInput" placeholder="Ara..." class="bg-transparent outline-none flex-grow min-w-[80px] px-2 text-sm"></div>
+                                <div id="authorTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px] bg-white">
+                                    <input type="text" id="authorSearchInput" placeholder="Yazar ara veya seç..." class="bg-transparent outline-none flex-grow min-w-[120px] px-2 text-sm">
+                                </div>
                                 <input type="hidden" name="authorIds" id="hiddenAuthorIds">
-                                <div id="authorDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50"></div>
+                                <div id="authorDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50 custom-scrollbar"></div>
                             </div>
+
                             <div class="relative z-10">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Kategoriler</label>
-                                <div id="categoryTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px]"><input type="text" id="categorySearchInput" placeholder="Ara..." class="bg-transparent outline-none flex-grow min-w-[80px] px-2 text-sm"></div>
+                                <div id="categoryTagsContainer" class="flex flex-wrap gap-2 p-2 rounded-xl border border-slate-200 min-h-[45px] bg-white">
+                                    <input type="text" id="categorySearchInput" placeholder="Kategori ara veya seç..." class="bg-transparent outline-none flex-grow min-w-[120px] px-2 text-sm">
+                                </div>
                                 <input type="hidden" name="categoryIds" id="hiddenCategoryIds">
-                                <div id="categoryDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50"></div>
+                                <div id="categoryDropdownList" class="hidden absolute w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50 custom-scrollbar"></div>
                             </div>
 
                             <div>
@@ -105,7 +119,7 @@
                     </div>
 
                     <div class="px-8 py-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-                        <button type="button" id="cancelBtn" class="px-6 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-medium">İptal</button>
+                        <button type="button" class="closeModalBtn px-6 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-medium">İptal</button>
                         <button type="submit" form="addBookForm" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-lg font-medium">Kaydet</button>
                     </div>
                 </div>
@@ -113,55 +127,304 @@
         </div>
     </div>
 
-    <div id="toastContainer" class="fixed top-5 right-5 z-[60] flex flex-col gap-2"></div>
+    <div id="addAuthorModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 modal-backdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 flex flex-col modal-panel">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                    <h3 class="text-lg font-bold text-slate-800">Sisteme Yazar Ekle</h3>
+                    <button class="closeAuthorModalBtn text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6">
+                    <form id="addAuthorForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Yazar Adı Soyadı</label>
+                            <input type="text" name="name" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none" placeholder="Örn: Zülfü Livaneli">
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" class="closeAuthorModalBtn px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-bold">İptal</button>
+                            <button type="submit" class="px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-sm font-bold shadow-lg">Ekle</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addCategoryModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 modal-backdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-95 opacity-0 flex flex-col modal-panel">
+                <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                    <h3 class="text-lg font-bold text-slate-800">Sisteme Kategori Ekle</h3>
+                    <button class="closeCategoryModalBtn text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6">
+                    <form id="addCategoryForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Kategori Adı</label>
+                            <input type="text" name="name" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none" placeholder="Örn: Bilim Kurgu">
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <button type="button" class="closeCategoryModalBtn px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-sm font-bold">İptal</button>
+                            <button type="submit" class="px-6 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 text-sm font-bold shadow-lg">Ekle</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
 
     <script type="module">
     import { loadNavbar, showToast } from './assets/js/layout.js';
     import { getAllBooks, deleteBook, getAuthors, getCategories, createBook } from './assets/js/book.js';
     import { borrowBook } from './assets/js/borrowing.js';
+    import { fetchBookCover } from './assets/js/google-books.js';
+    import { request } from './assets/js/api.js';
 
     let currentUser = null;
-    let allBooks = []; // Yerel veritabanından gelen tüm kitaplar
-    let currentPage = 1;
+    let allBooks = []; 
     const itemsPerPage = 12;
+    let currentPage = 1;
 
-    async function init() {
-        try {
-            currentUser = await loadNavbar(); //
-            
-            // Yönetici kontrolleri ve Modal başlatma işlemleri buraya gelecek
-            if (currentUser && currentUser.role === 'ADMIN') {
-                document.getElementById('addBookBtn').classList.remove('hidden');
-                // MultiSelect init işlemleri...
-            }
+    const cache = { authors: [], categories: [] };
 
-            await refreshData();
-        } catch (error) {
-            console.error("Sistem başlatılamadı:", error);
-            showToast("Sistem yüklenirken bir hata oluştu.", "error");
+    // --- GENEL MODAL AÇ/KAPA YARDIMCISI ---
+    function toggleModal(modalId, show) {
+        const modal = document.getElementById(modalId);
+        const backdrop = modal.querySelector('.modal-backdrop');
+        const panel = modal.querySelector('.modal-panel');
+
+        if (show) {
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.replace('opacity-0', 'opacity-100');
+                panel.classList.replace('opacity-0', 'opacity-100');
+                panel.classList.remove('scale-95');
+            }, 10);
+        } else {
+            backdrop.classList.replace('opacity-100', 'opacity-0');
+            panel.classList.replace('opacity-100', 'opacity-0');
+            panel.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
         }
     }
 
-    // Verileri backend'den tazeleyen ana fonksiyon
+    // --- INFINITE SCROLL + SEARCH SELECT ENGINE ---
+    function setupPaginatedSelect(type, config) {
+        const { searchId, dropdownId, containerId, hiddenId } = config;
+        const searchInput = document.getElementById(searchId);
+        const dropdown = document.getElementById(dropdownId);
+        const tagsContainer = document.getElementById(containerId);
+        const hiddenInput = document.getElementById(hiddenId);
+
+        let selectedIds = [];
+        let pagedCount = 0;
+        const pageSize = 20;
+        let currentFilter = "";
+
+        const renderItems = (isNewSearch = false) => {
+            if (isNewSearch) { dropdown.innerHTML = ''; pagedCount = 0; }
+            
+            const filtered = cache[type].filter(item => 
+                item.name.toLowerCase().includes(currentFilter.toLowerCase()) && 
+                !selectedIds.includes(item.id)
+            );
+
+            const itemsToRender = filtered.slice(pagedCount, pagedCount + pageSize);
+            
+            itemsToRender.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item p-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-100 last:border-0';
+                div.textContent = item.name;
+                div.onclick = () => selectItem(item);
+                dropdown.appendChild(div);
+            });
+
+            pagedCount += itemsToRender.length;
+            if (filtered.length === 0 && isNewSearch) {
+                dropdown.innerHTML = '<div class="p-3 text-sm text-slate-400 italic text-center">Sonuç yok</div>';
+            }
+        };
+
+        const selectItem = (item) => {
+            selectedIds.push(item.id);
+            updateHidden();
+            
+            const tag = document.createElement('div');
+            tag.className = 'tag-badge bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-fade-up';
+            tag.innerHTML = `<span>${item.name}</span><button type="button" class="hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>`;
+            
+            tag.querySelector('button').onclick = () => {
+                selectedIds = selectedIds.filter(id => id !== item.id);
+                tag.remove();
+                updateHidden();
+            };
+
+            tagsContainer.insertBefore(tag, searchInput);
+            searchInput.value = '';
+            currentFilter = '';
+            dropdown.classList.add('hidden');
+        };
+
+        const updateHidden = () => { hiddenInput.value = JSON.stringify(selectedIds); };
+
+        searchInput.onfocus = () => { dropdown.classList.remove('hidden'); renderItems(true); };
+        searchInput.oninput = (e) => { currentFilter = e.target.value; renderItems(true); };
+
+        dropdown.onscroll = () => {
+            if (dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10) {
+                renderItems(false);
+            }
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!tagsContainer.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
+        });
+
+        return () => {
+            selectedIds = [];
+            updateHidden();
+            tagsContainer.querySelectorAll('.tag-badge').forEach(t => t.remove());
+        };
+    }
+
+    // --- APP BAŞLATMA ---
+    async function init() {
+        try {
+            currentUser = await loadNavbar();
+            if (currentUser?.role === 'ADMIN') {
+                document.getElementById('adminButtonParams').classList.remove('hidden');
+            }
+            
+            const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
+            cache.authors = authors; cache.categories = categories;
+
+            // Select Yapılarını Kur
+            const resetA = setupPaginatedSelect('authors', {
+                searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
+                containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
+            });
+            const resetC = setupPaginatedSelect('categories', {
+                searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
+                containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
+            });
+
+            setupBookModalLogic(resetA, resetC);
+            setupExtraModals();
+            await refreshData();
+
+        } catch (e) { console.error(e); }
+    }
+
+    // --- KİTAP EKLEME MODALI ---
+    function setupBookModalLogic(resetA, resetC) {
+        const modalId = 'addBookModal';
+        const form = document.getElementById('addBookForm');
+
+        document.getElementById('addBookBtn').onclick = () => toggleModal(modalId, true);
+
+        document.querySelectorAll('.closeModalBtn').forEach(btn => 
+            btn.onclick = () => {
+                toggleModal(modalId, false);
+                setTimeout(() => { form.reset(); resetA(); resetC(); }, 300);
+            }
+        );
+
+        document.getElementById('fetchCoverBtn').onclick = async () => {
+            const isbn = document.getElementById('isbnInput').value;
+            if (!isbn) return showToast("Lütfen ISBN girin", "info");
+            const url = await fetchBookCover(isbn);
+            if (url) {
+                document.getElementById('imageUrlInput').value = url;
+                document.getElementById('coverImage').src = url;
+                document.getElementById('coverImage').classList.remove('hidden');
+                document.getElementById('coverPreview').classList.add('hidden');
+            } else showToast("Kapak bulunamadı", "error");
+        };
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form));
+            data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
+            data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
+            data.stock = parseInt(data.stock);
+
+            if (await createBook(data)) { 
+                showToast("Kitap Sisteme Eklendi", "success"); 
+                toggleModal(modalId, false); 
+                form.reset(); resetA(); resetC();
+                refreshData(); 
+            }
+        };
+    }
+
+    // --- YENİ YAZAR VE KATEGORİ MODALLARI ---
+    function setupExtraModals() {
+        // YAZAR
+        const authorModalId = 'addAuthorModal';
+        const authorForm = document.getElementById('addAuthorForm');
+        
+        document.getElementById('addAuthorBtn').onclick = () => toggleModal(authorModalId, true);
+        document.querySelectorAll('.closeAuthorModalBtn').forEach(btn => 
+            btn.onclick = () => { toggleModal(authorModalId, false); authorForm.reset(); }
+        );
+
+        authorForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(authorForm));
+            try {
+                const newAuthor = await request('/authors', 'POST', data);
+                if(newAuthor) {
+                    showToast(`Yazar eklendi: ${newAuthor.name}`, "success");
+                    cache.authors.push(newAuthor);
+                    toggleModal(authorModalId, false);
+                    authorForm.reset();
+                }
+            } catch (err) { showToast(err.message, "error"); }
+        };
+
+        // KATEGORİ
+        const categoryModalId = 'addCategoryModal';
+        const categoryForm = document.getElementById('addCategoryForm');
+
+        document.getElementById('addCategoryBtn').onclick = () => toggleModal(categoryModalId, true);
+        document.querySelectorAll('.closeCategoryModalBtn').forEach(btn => 
+            btn.onclick = () => { toggleModal(categoryModalId, false); categoryForm.reset(); }
+        );
+
+        categoryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(categoryForm));
+            try {
+                const newCategory = await request('/categories', 'POST', data);
+                if(newCategory) {
+                    showToast(`Kategori eklendi: ${newCategory.name}`, "success");
+                    cache.categories.push(newCategory);
+                    toggleModal(categoryModalId, false);
+                    categoryForm.reset();
+                }
+            } catch (err) { showToast(err.message, "error"); }
+        };
+    }
+
+    // --- DATA LİSTELEME ---
     async function refreshData() {
-        const loading = document.getElementById('loading');
-        loading.classList.remove('hidden');
-        
-        allBooks = await getAllBooks(); //
+        const load = document.getElementById('loading');
+        load.classList.remove('hidden');
+        allBooks = await getAllBooks();
         renderLocalPage(1);
-        
-        loading.classList.add('hidden');
+        load.classList.add('hidden');
     }
 
     function renderLocalPage(page) {
         currentPage = page;
-        const startIndex = (page - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const pagedItems = allBooks.slice(startIndex, endIndex);
-
+        const start = (page - 1) * itemsPerPage;
+        const paged = allBooks.slice(start, start + itemsPerPage);
         const grid = document.getElementById('bookGrid');
-        grid.innerHTML = '';
-
+        
         if (allBooks.length === 0) {
             document.getElementById('emptyMessage').classList.remove('hidden');
             grid.classList.add('hidden');
@@ -170,72 +433,43 @@
 
         document.getElementById('emptyMessage').classList.add('hidden');
         grid.classList.remove('hidden');
-
-        pagedItems.forEach(book => {
-            // Müşteriye özel temiz kart tasarımı
-            const card = `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full">
-                    <div class="relative aspect-[2/3] bg-slate-50 border-b">
-                        <img src="${book.imageUrl || 'assets/js/library-bg.jpg'}" class="w-full h-full object-cover">
-                        <div class="absolute top-2 right-2">
-                            <span class="${book.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-                                STOK: ${book.stock}
-                            </span>
-                        </div>
+        grid.innerHTML = paged.map(book => `
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full">
+                <div class="relative aspect-[2/3] bg-slate-50 border-b">
+                    <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover">
+                    <div class="absolute top-2 right-2"><span class="${book.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">STOK: ${book.stock}</span></div>
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${book.title}">${book.title}</h3>
+                    <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => a.name).join(', ') || 'Bilinmiyor'}</p>
+                    <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center">
+                        ${currentUser?.role === 'ADMIN' ? 
+                            `<button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2"><i class="fa-solid fa-trash-can"></i></button>` : 
+                            `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition">Ödünç Al</button>`}
                     </div>
-                    <div class="p-4 flex flex-col flex-grow">
-                        <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1">${book.title}</h3>
-                        <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => a.name).join(', ') || 'Yazar Bilgisi Yok'}</p>
-                        
-                        <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center">
-                            ${currentUser.role === 'ADMIN' ? 
-                                `<button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash-can"></i></button>` : 
-                                `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2 rounded-lg disabled:bg-slate-200">Ödünç Al</button>`
-                            }
-                        </div>
-                    </div>
-                </div>`;
-            grid.innerHTML += card;
-        });
-
-        renderPaginationControls();
+                </div>
+            </div>`).join('');
+        
+        renderPagination();
     }
 
-    function renderPaginationControls() {
-        const totalPages = Math.ceil(allBooks.length / itemsPerPage);
-        const container = document.getElementById('pagination');
-        container.innerHTML = '';
-
-        if (totalPages <= 1) return;
-        container.classList.remove('hidden');
-
-        for (let i = 1; i <= totalPages; i++) {
+    function renderPagination() {
+        const total = Math.ceil(allBooks.length / itemsPerPage);
+        const cont = document.getElementById('pagination');
+        cont.innerHTML = '';
+        if (total <= 1) return cont.classList.add('hidden');
+        cont.classList.remove('hidden');
+        for (let i = 1; i <= total; i++) {
             const btn = document.createElement('button');
             btn.innerText = i;
-            btn.className = `w-9 h-9 rounded-lg font-bold text-xs transition ${i === currentPage ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
+            btn.className = `w-9 h-9 rounded-lg font-bold text-xs ${i === currentPage ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
             btn.onclick = () => { renderLocalPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-            container.appendChild(btn);
+            cont.appendChild(btn);
         }
     }
 
-    // Global fonksiyon tanımlamaları (Düzgün profesyonel dil)
-    window.handleDelete = async (id) => {
-        if(confirm("Bu kitap kaydını kalıcı olarak silmek istediğinize emin misiniz?")) {
-            if(await deleteBook(id)) { 
-                showToast("Kitap başarıyla silindi.", "success");
-                await refreshData();
-            }
-        }
-    };
-
-    window.handleBorrow = async (id) => {
-        if(confirm("Bu kitabı ödünç almak istiyor musunuz?")) {
-            if(await borrowBook(id)) {
-                showToast("Kitap ödünç alındı. Keyifli okumalar!", "success");
-                await refreshData();
-            }
-        }
-    };
+    window.handleDelete = async (id) => { if(confirm("Emin misiniz?")) { if(await deleteBook(id)) { showToast("Silindi", "success"); refreshData(); } } };
+    window.handleBorrow = async (id) => { if(confirm("Ödünç alıyor musunuz?")) { if(await borrowBook(id)) { showToast("Başarılı", "success"); refreshData(); } } };
 
     init();
 </script>
