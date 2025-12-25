@@ -168,499 +168,507 @@
     <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
 
     <script type="module">
-    import { loadNavbar, showToast } from './assets/js/layout.js';
-    import { getAllBooks, deleteBook, getAuthors, getCategories, createBook } from './assets/js/book.js';
-    import { borrowBook } from './assets/js/borrowing.js';
-    import { fetchBookDetails } from './assets/js/google-books.js';
-    import { request } from './assets/js/api.js';
+        import { loadNavbar, showToast } from './assets/js/layout.js';
+        // DÜZELTME 1: Tüm gerekli fonksiyonları buraya ekledik (getBookById, updateBook dahil)
+        import { getAllBooks, deleteBook, getAuthors, getCategories, createBook, getBookById, updateBook } from './assets/js/book.js';
+        import { borrowBook } from './assets/js/borrowing.js';
+        import { fetchBookDetails } from './assets/js/google-books.js';
+        import { request } from './assets/js/api.js';
 
-    let editingBookId = null;
-    let currentUser = null;
-    let allBooks = []; 
-    const itemsPerPage = 12;
-    let currentPage = 1;
+        let editingBookId = null;
+        let currentUser = null;
+        let allBooks = []; 
+        const itemsPerPage = 12;
+        let currentPage = 1;
 
-    const cache = { authors: [], categories: [] };
+        const cache = { authors: [], categories: [] };
 
-    function toggleModal(modalId, show) {
-        const modal = document.getElementById(modalId);
-        const backdrop = modal.querySelector('.modal-backdrop');
-        const panel = modal.querySelector('.modal-panel');
+        function toggleModal(modalId, show) {
+            const modal = document.getElementById(modalId);
+            const backdrop = modal.querySelector('.modal-backdrop');
+            const panel = modal.querySelector('.modal-panel');
 
-        if (show) {
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                backdrop.classList.replace('opacity-0', 'opacity-100');
-                panel.classList.replace('opacity-0', 'opacity-100');
-                panel.classList.remove('scale-95');
-            }, 10);
-        } else {
-            backdrop.classList.replace('opacity-100', 'opacity-0');
-            panel.classList.replace('opacity-100', 'opacity-0');
-            panel.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-    }
-
-    function setupPaginatedSelect(type, config) {
-        const { searchId, dropdownId, containerId, hiddenId } = config;
-        const searchInput = document.getElementById(searchId);
-        const dropdown = document.getElementById(dropdownId);
-        const tagsContainer = document.getElementById(containerId);
-        const hiddenInput = document.getElementById(hiddenId);
-
-        let selectedIds = [];
-        let pagedCount = 0;
-        const pageSize = 20;
-        let currentFilter = "";
-
-        const renderItems = (isNewSearch = false) => {
-            if (isNewSearch) { dropdown.innerHTML = ''; pagedCount = 0; }
-            
-            const filtered = cache[type].filter(item => 
-                item.name.toLowerCase().includes(currentFilter.toLowerCase()) && 
-                !selectedIds.includes(item.id)
-            );
-
-            const itemsToRender = filtered.slice(pagedCount, pagedCount + pageSize);
-            
-            itemsToRender.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'dropdown-item p-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-100 last:border-0';
-                div.textContent = item.name;
-                div.onclick = () => selectItem(item);
-                dropdown.appendChild(div);
-            });
-
-            pagedCount += itemsToRender.length;
-            if (filtered.length === 0 && isNewSearch) {
-                dropdown.innerHTML = '<div class="p-3 text-sm text-slate-400 italic text-center">Sonuç yok</div>';
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    backdrop.classList.replace('opacity-0', 'opacity-100');
+                    panel.classList.replace('opacity-0', 'opacity-100');
+                    panel.classList.remove('scale-95');
+                }, 10);
+            } else {
+                backdrop.classList.replace('opacity-100', 'opacity-0');
+                panel.classList.replace('opacity-100', 'opacity-0');
+                panel.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
             }
-        };
+        }
 
-        const selectItem = (item) => {
-            selectedIds.push(item.id);
-            updateHidden();
-            
-            const tag = document.createElement('div');
-            tag.className = 'tag-badge bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-fade-up';
-            tag.innerHTML = `<span>${item.name}</span><button type="button" class="hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>`;
-            
-            tag.querySelector('button').onclick = () => {
-                selectedIds = selectedIds.filter(id => id !== item.id);
-                tag.remove();
-                updateHidden();
+        function setupPaginatedSelect(type, config) {
+            const { searchId, dropdownId, containerId, hiddenId } = config;
+            const searchInput = document.getElementById(searchId);
+            const dropdown = document.getElementById(dropdownId);
+            const tagsContainer = document.getElementById(containerId);
+            const hiddenInput = document.getElementById(hiddenId);
+
+            let selectedIds = [];
+            let pagedCount = 0;
+            const pageSize = 20;
+            let currentFilter = "";
+
+            const renderItems = (isNewSearch = false) => {
+                if (isNewSearch) { dropdown.innerHTML = ''; pagedCount = 0; }
+                
+                const filtered = cache[type].filter(item => 
+                    item.name.toLowerCase().includes(currentFilter.toLowerCase()) && 
+                    !selectedIds.includes(item.id)
+                );
+
+                const itemsToRender = filtered.slice(pagedCount, pagedCount + pageSize);
+                
+                itemsToRender.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-item p-3 hover:bg-blue-50 cursor-pointer text-sm text-slate-700 border-b border-slate-100 last:border-0';
+                    div.textContent = item.name;
+                    div.onclick = () => selectItem(item);
+                    dropdown.appendChild(div);
+                });
+
+                pagedCount += itemsToRender.length;
+                if (filtered.length === 0 && isNewSearch) {
+                    dropdown.innerHTML = '<div class="p-3 text-sm text-slate-400 italic text-center">Sonuç yok</div>';
+                }
             };
 
-            tagsContainer.insertBefore(tag, searchInput);
-            searchInput.value = '';
-            currentFilter = '';
-            dropdown.classList.add('hidden');
-        };
-
-        const updateHidden = () => { hiddenInput.value = JSON.stringify(selectedIds); };
-
-        searchInput.onfocus = () => { dropdown.classList.remove('hidden'); renderItems(true); };
-        searchInput.oninput = (e) => { currentFilter = e.target.value; renderItems(true); };
-
-        dropdown.onscroll = () => {
-            if (dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10) {
-                renderItems(false);
-            }
-        };
-
-        document.addEventListener('click', (e) => {
-            if (!tagsContainer.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
-        });
-
-        return {
-            reset: () => {
-                selectedIds = [];
+            const selectItem = (item) => {
+                selectedIds.push(item.id);
                 updateHidden();
-                tagsContainer.querySelectorAll('.tag-badge').forEach(t => t.remove());
-            },
-            selectExternal: (item) => selectItem(item)
-        };
-    }
+                
+                const tag = document.createElement('div');
+                tag.className = 'tag-badge bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2 animate-fade-up';
+                tag.innerHTML = `<span>${item.name}</span><button type="button" class="hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>`;
+                
+                tag.querySelector('button').onclick = () => {
+                    selectedIds = selectedIds.filter(id => id !== item.id);
+                    tag.remove();
+                    updateHidden();
+                };
 
-    // GLOBAL SCOPE: arkadaşın dediği gibi burada dursunlar
-    const authorSelectControl = setupPaginatedSelect('authors', {
-        searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
-        containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
-    });
-    const categorySelectControl = setupPaginatedSelect('categories', {
-        searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
-        containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
-    });
+                tagsContainer.insertBefore(tag, searchInput);
+                searchInput.value = '';
+                currentFilter = '';
+                dropdown.classList.add('hidden');
+            };
 
-    console.log("Dashboard script loaded");
+            const updateHidden = () => { hiddenInput.value = JSON.stringify(selectedIds); };
 
-async function init() {
-    try {
-        currentUser = await loadNavbar();
-        
-        // Admin kontrolü
-        if (currentUser?.role === 'ADMIN') {
-            const adminPanel = document.getElementById('adminButtonParams');
-            if(adminPanel) adminPanel.classList.remove('hidden');
-            else console.error("Admin paneli div'i bulunamadı!");
+            searchInput.onfocus = () => { dropdown.classList.remove('hidden'); renderItems(true); };
+            searchInput.oninput = (e) => { currentFilter = e.target.value; renderItems(true); };
+
+            dropdown.onscroll = () => {
+                if (dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10) {
+                    renderItems(false);
+                }
+            };
+
+            document.addEventListener('click', (e) => {
+                if (!tagsContainer.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
+            });
+
+            return {
+                reset: () => {
+                    selectedIds = [];
+                    updateHidden();
+                    tagsContainer.querySelectorAll('.tag-badge').forEach(t => t.remove());
+                },
+                selectExternal: (item) => selectItem(item)
+            };
         }
 
-        // 1. KRİTİK: Önce logic'i kur, veri sonra gelsin.
-        // setupBookModalLogic içinde 'document.getElementById' null dönüyor olabilir mi?
-        // HTML ID'lerin doğruluğunu teyit et.
-        setupBookModalLogic(authorSelectControl, categorySelectControl);
-        setupExtraModals();
-        console.log("Event listener'lar bağlandı.");
+        const authorSelectControl = setupPaginatedSelect('authors', {
+            searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
+            containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
+        });
+        const categorySelectControl = setupPaginatedSelect('categories', {
+            searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
+            containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
+        });
 
-        // 2. Verileri çek
-        const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
-        cache.authors = authors || [];
-        cache.categories = categories || [];
-        
-        await refreshData();
+        async function init() {
+            try {
+                // Yükleniyor'u manuel açalım ki init başlar başlamaz görünsün
+                document.getElementById('loading').classList.remove('hidden');
 
-    } catch (e) { 
-        console.error("Başlangıç hatası (Init Crash):", e); 
-        showToast("Sistem başlatılamadı: " + e.message, "error");
-    }
-}
+                currentUser = await loadNavbar();
+                if (currentUser?.role === 'ADMIN') {
+                    document.getElementById('adminButtonParams').classList.remove('hidden');
+                }
 
-    function setupBookModalLogic(authorSelectControl, categorySelectControl) {
-        const modalId = 'addBookModal';
-        const form = document.getElementById('addBookForm');
+                setupBookModalLogic(authorSelectControl, categorySelectControl);
+                setupExtraModals();
 
-        document.getElementById('addBookBtn').onclick = () => {
-            // "Yeni" moda geç
-            editingBookId = null;
-            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
-            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
-            toggleModal(modalId, true);
-        };
+                const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
+                cache.authors = authors; cache.categories = categories;
 
-        document.querySelectorAll('.closeModalBtn').forEach(btn => 
-            btn.onclick = () => {
-                toggleModal(modalId, false);
-                setTimeout(() => { 
-                    form.reset(); 
-                    authorSelectControl.reset(); 
-                    categorySelectControl.reset(); 
-                    editingBookId = null;
-                    // kapak UI reset
+                await refreshData();
+
+            } catch (e) { 
+                console.error("Başlangıç hatası:", e); 
+                showToast("Veriler yüklenirken hata oluştu: " + e.message, "error");
+            } finally {
+                // DÜZELTME 2: Hata olsa bile Loading ekranını kapat!
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+
+        function setupBookModalLogic(authorSelectControl, categorySelectControl) {
+            const modalId = 'addBookModal';
+            const form = document.getElementById('addBookForm');
+
+            document.getElementById('addBookBtn').onclick = () => {
+                editingBookId = null;
+                // HATA BURADAYDI: Buton formun içinde değil, dışında!
+                // DÜZELTME: Attribute selector ile yakalıyoruz.
+                document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+                document.querySelector('button[form="addBookForm"]').textContent = "Kaydet"; 
+                
+                toggleModal(modalId, true);
+            };
+
+            document.querySelectorAll('.closeModalBtn').forEach(btn => 
+                btn.onclick = () => {
+                    toggleModal(modalId, false);
+                    setTimeout(() => { 
+                        form.reset(); 
+                        authorSelectControl.reset(); 
+                        categorySelectControl.reset(); 
+                        editingBookId = null;
+                        document.getElementById('coverImage').src = "";
+                        document.getElementById('coverImage').classList.add('hidden');
+                        document.getElementById('coverPreview').classList.remove('hidden');
+                        document.getElementById('imageUrlInput').value = "";
+                        
+                        // Resetlerken de doğru seçiciyi kullanalım
+                        document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
+                        document.querySelector('button[form="addBookForm"]').textContent = "Kaydet";
+                    }, 300);
+                }
+            );
+
+            // ... (fetchCoverBtn ve form.onsubmit kısımları aynı kalabilir, dokunmana gerek yok)
+            
+            // fetchCoverBtn kodu...
+            document.getElementById('fetchCoverBtn').onclick = async () => {
+                const btn = document.getElementById('fetchCoverBtn');
+                const isbn = document.getElementById('isbnInput').value.trim();
+                
+                if (!isbn) return showToast("Lütfen ISBN girin", "info");
+                
+                const originalText = btn.innerText;
+                btn.innerText = "Getiriliyor...";
+                btn.disabled = true;
+
+                try {
+                    // 1. Google'dan veriyi çek
+                    const data = await fetchBookDetails(isbn);
+                    
+                    if (!data) {
+                        showToast("Google Books'ta kitap bulunamadı!", "error");
+                        return;
+                    }
+                    console.log("Google'dan gelen veri:", data); // Debug için
+
+                    // 2. Form alanlarını doldur
+                    document.querySelector('[name=title]').value = data.title || "";
+                    document.querySelector('[name=description]').value = 
+                        (data.description ? data.description.substring(0, 500) + "..." : "") + 
+                        `\n\n(Sayfa: ${data.pageCount || '?'}, Yıl: ${data.publishedDate || '?'})`;
+                    
+                    if(data.image) {
+                        document.getElementById('imageUrlInput').value = data.image;
+                        document.getElementById('coverImage').src = data.image;
+                        document.getElementById('coverImage').classList.remove('hidden');
+                        document.getElementById('coverPreview').classList.add('hidden');
+                    }
+
+                    // 3. YAZARLARI İŞLE (Düzeltilmiş Mantık)
+                    if (data.authors && Array.isArray(data.authors)) {
+                        // Önce mevcut seçimleri temizle
+                        authorSelectControl.reset();
+                        
+                        for (const authName of data.authors) {
+                            const cleanName = authName.trim();
+                            // Cache'te (hafızada) var mı kontrol et
+                            let existing = cache.authors.find(a => a.name.toLowerCase() === cleanName.toLowerCase());
+                            
+                            if (!existing) {
+                                try {
+                                    // Yoksa oluşturmayı dene
+                                    existing = await request('/authors', 'POST', { name: cleanName });
+                                    cache.authors.push(existing);
+                                    showToast(`Yeni yazar eklendi: ${cleanName}`, "success");
+                                } catch (e) { 
+                                    // Eğer backend "Zaten var" derse, cache güncel olmayabilir.
+                                    // Bu durumda hatayı yutma, belki isim benzerliğinden bulabiliriz.
+                                    console.warn("Yazar eklenemedi (Muhtemelen var):", cleanName);
+                                    
+                                    // İsim benzerliğinden tekrar bulmayı dene (Backend case-insensitive olabilir)
+                                    // Not: Eğer cache eksikse burası yine bulamaz ama en azından deniyoruz.
+                                    existing = cache.authors.find(a => a.name.toLowerCase().includes(cleanName.toLowerCase()));
+                                }
+                            }
+                            
+                            // Eğer bulunduysa veya yeni oluşturulduysa SEÇ
+                            if (existing) {
+                                authorSelectControl.selectExternal(existing);
+                            }
+                        }
+                    }
+
+                    // 4. KATEGORİLERİ İŞLE (Düzeltilmiş Mantık)
+                    if (data.categories && Array.isArray(data.categories)) {
+                        categorySelectControl.reset();
+
+                        for (const catRaw of data.categories) {
+                            // Google "Fiction / Fantasy / Epic" gibi gönderir. Biz ilkini alalım: "Fiction"
+                            // Veya senin tercihine göre hepsini de ayırabilirsin. Şimdilik ilk parçayı alıyoruz.
+                            const cleanCatName = catRaw.split('/')[0].trim();
+                            
+                            let existing = cache.categories.find(c => c.name.toLowerCase() === cleanCatName.toLowerCase());
+                            
+                            if (!existing) {
+                                try {
+                                    existing = await request('/categories', 'POST', { name: cleanCatName });
+                                    cache.categories.push(existing);
+                                    showToast(`Kategori eklendi: ${cleanCatName}`, "success");
+                                } catch (e) { 
+                                    console.warn("Kategori eklenemedi:", cleanCatName);
+                                    // Hata durumunda cache'i tekrar zorla
+                                    existing = cache.categories.find(c => c.name.toLowerCase().includes(cleanCatName.toLowerCase()));
+                                }
+                            }
+                            
+                            if (existing) {
+                                categorySelectControl.selectExternal(existing);
+                            }
+                        }
+                    }
+
+                    showToast("Bilgiler başarıyla çekildi!", "success");
+
+                } catch (error) {
+                    console.error("Fetch Hatası:", error);
+                    showToast("Hata: " + error.message, "error");
+                } finally {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            };
+
+            // form.onsubmit kodu...
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(form));
+                data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
+                data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
+                data.stock = parseInt(data.stock);
+
+                let success = false;
+                try {
+                    if (editingBookId) {
+                        await updateBook(editingBookId, data);
+                        showToast("Kitap başarıyla güncellendi", "success");
+                        success = true;
+                    } else {
+                        success = await createBook(data);
+                        if(success) showToast("Kitap sisteme eklendi", "success");
+                    }
+
+                    if (success) {
+                        toggleModal('addBookModal', false);
+                        editingBookId = null;
+                        form.reset(); 
+                        authorSelectControl.reset(); 
+                        categorySelectControl.reset();
+                        document.getElementById('coverImage').classList.add('hidden');
+                        document.getElementById('coverPreview').classList.remove('hidden');
+                        refreshData(); 
+                    }
+                } catch (error) {
+                    showToast("İşlem Başarısız: " + error.message, "error");
+                }
+            };
+        }
+
+        function setupExtraModals() {
+            // (Yazar ve Kategori modal kodları aynen kalabilir)
+             const authorModalId = 'addAuthorModal';
+            const authorForm = document.getElementById('addAuthorForm');
+            
+            document.getElementById('addAuthorBtn').onclick = () => toggleModal(authorModalId, true);
+            document.querySelectorAll('.closeAuthorModalBtn').forEach(btn => 
+                btn.onclick = () => { toggleModal(authorModalId, false); authorForm.reset(); }
+            );
+
+            authorForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(authorForm));
+                try {
+                    const newAuthor = await request('/authors', 'POST', data);
+                    if(newAuthor) {
+                        showToast(`Yazar eklendi: ${newAuthor.name}`, "success");
+                        cache.authors.push(newAuthor);
+                        toggleModal(authorModalId, false);
+                        authorForm.reset();
+                    }
+                } catch (err) { showToast(err.message, "error"); }
+            };
+
+            const categoryModalId = 'addCategoryModal';
+            const categoryForm = document.getElementById('addCategoryForm');
+
+            document.getElementById('addCategoryBtn').onclick = () => toggleModal(categoryModalId, true);
+            document.querySelectorAll('.closeCategoryModalBtn').forEach(btn => 
+                btn.onclick = () => { toggleModal(categoryModalId, false); categoryForm.reset(); }
+            );
+
+            categoryForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(categoryForm));
+                try {
+                    const newCategory = await request('/categories', 'POST', data);
+                    if(newCategory) {
+                        showToast(`Kategori eklendi: ${newCategory.name}`, "success");
+                        cache.categories.push(newCategory);
+                        toggleModal(categoryModalId, false);
+                        categoryForm.reset();
+                    }
+                } catch (err) { showToast(err.message, "error"); }
+            };
+        }
+
+        async function refreshData() {
+            // Loading kontrolü artık init'te yapılıyor ama burası sayfa içi yenilemeler için kalsın
+            // Ancak init'ten çağrıldığında çakışmasın diye 'hidden' classını init'teki finally yönetecek
+            allBooks = await getAllBooks();
+            renderLocalPage(1);
+        }
+
+        function renderLocalPage(page) {
+            currentPage = page;
+            const start = (page - 1) * itemsPerPage;
+            const paged = allBooks.slice(start, start + itemsPerPage);
+            const grid = document.getElementById('bookGrid');
+            
+            if (allBooks.length === 0) {
+                document.getElementById('emptyMessage').classList.remove('hidden');
+                grid.classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('emptyMessage').classList.add('hidden');
+            grid.classList.remove('hidden');
+            grid.innerHTML = paged.map(book => `
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full">
+                    <div class="relative aspect-[2/3] bg-slate-50 border-b">
+                        <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover">
+                        <div class="absolute top-2 right-2"><span class="${book.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">STOK: ${book.stock}</span></div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${book.title}">${book.title}</h3>
+                        <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => a.name).join(', ') || 'Bilinmiyor'}</p>
+                        <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center gap-2">
+                            ${currentUser?.role === 'ADMIN' ? 
+                                `<div class="flex justify-end gap-2">
+                                     <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2" title="Düzenle">
+                                       <i class="fa-solid fa-pen-to-square"></i>
+                                     </button>
+                                     <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2" title="Sil">
+                                      <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>`
+                                : 
+                                `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition">Ödünç Al</button>`}
+                        </div>
+                    </div>
+                </div>`).join('');
+            
+            renderPagination();
+        }
+
+        window.handleEdit = async (id) => {
+            try {
+                const book = await getBookById(id);
+                if (!book) return showToast("Kitap bilgileri yüklenemedi!", "error");
+
+                editingBookId = id;
+                
+                // DÜZELTME: Doğru seçiciyi kullanıyoruz
+                document.querySelector('#addBookModal h3').textContent = "Kitap Düzenle";
+                document.querySelector('button[form="addBookForm"]').textContent = "Güncelle";
+
+                const form = document.getElementById('addBookForm');
+                form.querySelector('[name=isbn]').value = book.isbn ?? "";
+                form.querySelector('[name=title]').value = book.title ?? "";
+                form.querySelector('[name=stock]').value = book.stock ?? 1;
+                form.querySelector('[name=description]').value = book.description || "";
+                form.querySelector('[name=imageUrl]').value = book.imageUrl || "";
+
+                if (book.imageUrl) {
+                    document.getElementById('coverImage').src = book.imageUrl;
+                    document.getElementById('coverImage').classList.remove('hidden');
+                    document.getElementById('coverPreview').classList.add('hidden');
+                } else {
                     document.getElementById('coverImage').src = "";
                     document.getElementById('coverImage').classList.add('hidden');
                     document.getElementById('coverPreview').classList.remove('hidden');
-                    document.getElementById('imageUrlInput').value = "";
-                    // başlık/btn reset
-                    document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
-                    document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
-                }, 300);
-            }
-        );
-
-        document.getElementById('fetchCoverBtn').onclick = async () => {
-            const btn = document.getElementById('fetchCoverBtn');
-            const isbn = document.getElementById('isbnInput').value;
-            
-            if (!isbn) return showToast("Lütfen ISBN girin", "info");
-            
-            const originalText = btn.innerText;
-            btn.innerText = "Getiriliyor...";
-            btn.disabled = true;
-
-            try {
-                const data = await fetchBookDetails(isbn);
-                
-                if (!data) {
-                    showToast("Kitap bulunamadı!", "error");
-                    return;
                 }
 
-                document.querySelector('[name=title]').value = data.title;
-                document.querySelector('[name=description]').value = 
-                    (data.description ? data.description.substring(0, 300) + "..." : "") + 
-                    `\n\n(Sayfa: ${data.pageCount}, Yıl: ${data.publishedDate})`;
-                
-                if(data.image) {
-                    document.getElementById('imageUrlInput').value = data.image;
-                    document.getElementById('coverImage').src = data.image;
-                    document.getElementById('coverImage').classList.remove('hidden');
-                    document.getElementById('coverPreview').classList.add('hidden');
-                }
+                authorSelectControl.reset();
+                categorySelectControl.reset();
 
-                for (const authName of data.authors) {
-                    let existing = cache.authors.find(a => a.name.toLowerCase() === authName.toLowerCase());
-                    
-                    if (!existing) {
-                        try {
-                            existing = await request('/authors', 'POST', { name: authName });
-                            cache.authors.push(existing);
-                            showToast(`Yazar eklendi: ${authName}`, "success");
-                        } catch (e) { console.error("Yazar hatası:", authName); }
-                    }
-                    if (existing) authorSelectControl.selectExternal(existing);
-                }
+                (book.authors || []).forEach(author => authorSelectControl.selectExternal(author));
+                (book.categories || []).forEach(category => categorySelectControl.selectExternal(category));
 
-                for (const catName of data.categories) {
-                    const cleanCatName = catName.split('/')[0].trim();
-                    let existing = cache.categories.find(c => c.name.toLowerCase() === cleanCatName.toLowerCase());
-                    
-                    if (!existing) {
-                        try {
-                            existing = await request('/categories', 'POST', { name: cleanCatName });
-                            cache.categories.push(existing);
-                            showToast(`Kategori eklendi: ${cleanCatName}`, "success");
-                        } catch (e) { console.error("Kategori hatası:", cleanCatName); }
-                    }
-                    if (existing) categorySelectControl.selectExternal(existing);
-                }
-
-                showToast("Bilgiler Google'dan çekildi!", "success");
-
-            } catch (error) {
-                console.error(error);
-                showToast("Hata: " + error.message, "error");
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
+                toggleModal('addBookModal', true);
+            } catch (err) {
+                console.error(err);
+                showToast("Düzenleme modu açılırken hata: " + err.message, "error");
             }
         };
 
-        form.onsubmit = async (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(form));
-    
-    // String gelen ID array'lerini JSON parse et
-    data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
-    data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
-    data.stock = parseInt(data.stock);
-
-    let success = false;
-
-    try {
-        if (editingBookId) {
-            // GÜNCELLEME MODU
-            await import('./assets/js/book.js').then(m => m.updateBook(editingBookId, data));
-            showToast("Kitap başarıyla güncellendi", "success");
-            success = true;
-        } else {
-            // EKLEME MODU
-            success = await createBook(data);
-            if(success) showToast("Kitap sisteme eklendi", "success");
+        function renderPagination() {
+            const total = Math.ceil(allBooks.length / itemsPerPage);
+            const cont = document.getElementById('pagination');
+            cont.innerHTML = '';
+            if (total <= 1) return cont.classList.add('hidden');
+            cont.classList.remove('hidden');
+            for (let i = 1; i <= total; i++) {
+                const btn = document.createElement('button');
+                btn.innerText = i;
+                btn.className = `w-9 h-9 rounded-lg font-bold text-xs ${i === currentPage ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
+                btn.onclick = () => { renderLocalPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+                cont.appendChild(btn);
+            }
         }
 
-        if (success) {
-            toggleModal('addBookModal', false);
-            // Modu sıfırla
-            editingBookId = null;
-            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
-            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
-            
-            form.reset(); 
-            authorSelectControl.reset(); 
-            categorySelectControl.reset();
-            
-            // Resmi sıfırla
-            document.getElementById('coverImage').classList.add('hidden');
-            document.getElementById('coverPreview').classList.remove('hidden');
-            
-            refreshData(); 
-        }
-    } catch (error) {
-        showToast("İşlem Başarısız: " + error.message, "error");
-    }
-};
-
-// AYRICA: "İptal" veya "X" butonuna basınca editingBookId'yi sıfırlamayı unutma!
-document.querySelectorAll('.closeModalBtn').forEach(btn => 
-    btn.onclick = () => {
-        toggleModal('addBookModal', false);
-        setTimeout(() => { 
-            editingBookId = null; // SIFIRLAMA ÖNEMLİ
-            document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
-            document.querySelector('#addBookForm button[type="submit"]').textContent = "Kaydet";
-            form.reset(); 
-            authorSelectControl.reset(); 
-            categorySelectControl.reset(); 
-            document.getElementById('coverImage').classList.add('hidden');
-            document.getElementById('coverPreview').classList.remove('hidden');
-        }, 300);
-    }
-);
-    }
-
-    function setupExtraModals() {
-        const authorModalId = 'addAuthorModal';
-        const authorForm = document.getElementById('addAuthorForm');
-        
-        document.getElementById('addAuthorBtn').onclick = () => toggleModal(authorModalId, true);
-        document.querySelectorAll('.closeAuthorModalBtn').forEach(btn => 
-            btn.onclick = () => { toggleModal(authorModalId, false); authorForm.reset(); }
-        );
-
-        authorForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(authorForm));
-            try {
-                const newAuthor = await request('/authors', 'POST', data);
-                if(newAuthor) {
-                    showToast(`Yazar eklendi: ${newAuthor.name}`, "success");
-                    cache.authors.push(newAuthor);
-                    toggleModal(authorModalId, false);
-                    authorForm.reset();
+        window.handleDelete = async (id) => {
+            if(confirm("Emin misiniz?")) {
+                if(await deleteBook(id)) {
+                    showToast("Silindi", "success");
+                    refreshData();
                 }
-            } catch (err) { showToast(err.message, "error"); }
+            }
         };
 
-        const categoryModalId = 'addCategoryModal';
-        const categoryForm = document.getElementById('addCategoryForm');
-
-        document.getElementById('addCategoryBtn').onclick = () => toggleModal(categoryModalId, true);
-        document.querySelectorAll('.closeCategoryModalBtn').forEach(btn => 
-            btn.onclick = () => { toggleModal(categoryModalId, false); categoryForm.reset(); }
-        );
-
-        categoryForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(categoryForm));
-            try {
-                const newCategory = await request('/categories', 'POST', data);
-                if(newCategory) {
-                    showToast(`Kategori eklendi: ${newCategory.name}`, "success");
-                    cache.categories.push(newCategory);
-                    toggleModal(categoryModalId, false);
-                    categoryForm.reset();
-                }
-            } catch (err) { showToast(err.message, "error"); }
-        };
-    }
-
-    async function refreshData() {
-        const load = document.getElementById('loading');
-        load.classList.remove('hidden');
-        allBooks = await getAllBooks();
-        renderLocalPage(1);
-        load.classList.add('hidden');
-    }
-
-    function renderLocalPage(page) {
-        currentPage = page;
-        const start = (page - 1) * itemsPerPage;
-        const paged = allBooks.slice(start, start + itemsPerPage);
-        const grid = document.getElementById('bookGrid');
-        
-        if (allBooks.length === 0) {
-            document.getElementById('emptyMessage').classList.remove('hidden');
-            grid.classList.add('hidden');
-            return;
-        }
-
-        document.getElementById('emptyMessage').classList.add('hidden');
-        grid.classList.remove('hidden');
-        grid.innerHTML = paged.map(book => `
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full">
-                <div class="relative aspect-[2/3] bg-slate-50 border-b">
-                    <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover">
-                    <div class="absolute top-2 right-2"><span class="${book.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">STOK: ${book.stock}</span></div>
-                </div>
-                <div class="p-4 flex flex-col flex-grow">
-                    <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${book.title}">${book.title}</h3>
-                    <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => a.name).join(', ') || 'Bilinmiyor'}</p>
-                    <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center gap-2">
-                        ${currentUser?.role === 'ADMIN' ? 
-                            `<div class="flex justify-end gap-2">
-                                 <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2" title="Düzenle">
-                                   <i class="fa-solid fa-pen-to-square"></i>
-                                 </button>
-                                 <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2" title="Sil">
-                                  <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>`
-                            : 
-                            `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-blue-700 transition">Ödünç Al</button>`}
-                    </div>
-                </div>
-            </div>`).join('');
-        
-        renderPagination();
-    }
-
-    // ============================
-    // B. handleEdit Fonksiyonunu Ekleme (arkadaşın dediği gibi renderLocalPage altına)
-    // ============================
-    window.handleEdit = async (id) => {
-        const book = await import('./assets/js/book.js').then(m => m.getBookById(id));
-        if (!book) return showToast("Kitap bilgileri yüklenemedi!", "error");
-
-        // 1) Modu güncelle ve UI'ı hazırla
-        editingBookId = id;
-        document.querySelector('#addBookModal h3').textContent = "Kitap Düzenle";
-        document.querySelector('#addBookForm button[type="submit"]').textContent = "Güncelle";
-
-        // 2) Basit alanları doldur
-        const form = document.getElementById('addBookForm');
-        form.querySelector('[name=isbn]').value = book.isbn ?? "";
-        form.querySelector('[name=title]').value = book.title ?? "";
-        form.querySelector('[name=stock]').value = book.stock ?? 1;
-        form.querySelector('[name=description]').value = book.description || "";
-        form.querySelector('[name=imageUrl]').value = book.imageUrl || "";
-
-        // Kapak resmi varsa göster
-        if (book.imageUrl) {
-            document.getElementById('coverImage').src = book.imageUrl;
-            document.getElementById('coverImage').classList.remove('hidden');
-            document.getElementById('coverPreview').classList.add('hidden');
-        } else {
-            document.getElementById('coverImage').src = "";
-            document.getElementById('coverImage').classList.add('hidden');
-            document.getElementById('coverPreview').classList.remove('hidden');
-        }
-
-        // 3) Karmaşık ilişkiler: Yazarlar & Kategoriler
-        authorSelectControl.reset();
-        categorySelectControl.reset();
-
-        (book.authors || []).forEach(author => authorSelectControl.selectExternal(author));
-        (book.categories || []).forEach(category => categorySelectControl.selectExternal(category));
-
-        // 4) Modali aç
-        toggleModal('addBookModal', true);
-    };
-
-    function renderPagination() {
-        const total = Math.ceil(allBooks.length / itemsPerPage);
-        const cont = document.getElementById('pagination');
-        cont.innerHTML = '';
-        if (total <= 1) return cont.classList.add('hidden');
-        cont.classList.remove('hidden');
-        for (let i = 1; i <= total; i++) {
-            const btn = document.createElement('button');
-            btn.innerText = i;
-            btn.className = `w-9 h-9 rounded-lg font-bold text-xs ${i === currentPage ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
-            btn.onclick = () => { renderLocalPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-            cont.appendChild(btn);
-        }
-    }
-
-    window.handleDelete = async (id) => {
-        if(confirm("Emin misiniz?")) {
-            if(await deleteBook(id)) {
-                showToast("Silindi", "success");
+        window.handleBorrow = async (id) => {            
+            const result = await borrowBook(id);
+            
+            if (result) {
                 refreshData();
             }
-        }
-    };
+        };
 
-    window.handleBorrow = async (id) => {
-        if(confirm("Ödünç alıyor musunuz?")) {
-            if(await borrowBook(id)) {
-                showToast("Başarılı", "success");
-                refreshData();
-            }
-        }
-    };
-
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>
