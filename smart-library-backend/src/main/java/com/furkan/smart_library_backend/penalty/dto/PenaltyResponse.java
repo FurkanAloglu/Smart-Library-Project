@@ -9,6 +9,7 @@ public record PenaltyResponse(
         UUID id,
         BigDecimal amount,
         String bookTitle,
+        String userName,
         LocalDateTime returnDate,
         LocalDateTime dueDate
 ) {
@@ -17,6 +18,7 @@ public record PenaltyResponse(
                 penalty.getId(),
                 penalty.getAmount(),
                 penalty.getBorrowing().getBook().getTitle(),
+                penalty.getBorrowing().getUser().getFullName(),
                 penalty.getBorrowing().getReturnDate(),
                 penalty.getBorrowing().getDueDate()
         );

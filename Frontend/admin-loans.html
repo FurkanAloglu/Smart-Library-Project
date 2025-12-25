@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ödünç Takibi | AKYS</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <main class="container mx-auto px-6 py-8">
+        <h2 class="text-2xl font-black text-slate-800 mb-6">Tüm Ödünç İşlemleri</h2>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                            <th class="p-4">Kullanıcı</th>
+                            <th class="p-4">Kitap</th>
+                            <th class="p-4">Alış Tarihi</th>
+                            <th class="p-4">Son Teslim</th>
+                            <th class="p-4">Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loansTableBody" class="text-sm text-slate-600 divide-y divide-slate-100">
+                        <tr><td colspan="5" class="p-8 text-center">Yükleniyor...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { loadNavbar } from './assets/js/layout.js';
+        import { request } from './assets/js/api.js';
+
+        async function init() {
+            const user = await loadNavbar();
+            if (user?.role !== 'ADMIN') return window.location.href = 'index.html';
+
+            try {
+                const loans = await request('/borrowings/all');
+                renderLoans(loans);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderLoans(loans) {
+            const tbody = document.getElementById('loansTableBody');
+            if(!loans.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400">Kayıt yok.</td></tr>`;
+                return;
+            }
+
+            // Tarihe göre sırala (En yeni en üstte)
+            loans.sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate));
+
+            tbody.innerHTML = loans.map(loan => {
+                const isLate = !loan.isReturned && new Date() > new Date(loan.dueDate);
+                
+                return `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4 font-bold text-slate-700">${loan.userName}</td>
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                             <img src="${loan.bookImageUrl || './assets/js/library-bg.jpg'}" class="w-8 h-12 object-cover rounded shadow-sm">
+                             <span class="font-medium">${loan.bookTitle}</span>
+                        </div>
+                    </td>
+                    <td class="p-4">${new Date(loan.borrowDate).toLocaleDateString('tr-TR')}</td>
+                    <td class="p-4 ${isLate ? 'text-red-600 font-bold' : ''}">${new Date(loan.dueDate).toLocaleDateString('tr-TR')}</td>
+                    <td class="p-4">
+                        ${loan.isReturned 
+                            ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">İADE EDİLDİ</span>`
+                            : (isLate 
+                                ? `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold animate-pulse">GECİKTİ</span>` 
+                                : `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold">OKUYOR</span>`)
+                        }
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+        init();
+    </script>
+</body>
+</html>
