@@ -79,6 +79,10 @@ public class BorrowingService {
         Borrowing borrowing = borrowingRepository.findById(borrowingId)
                 .orElseThrow(() -> new EntityNotFoundException("Borrowing record not found"));
 
+        if (!borrowing.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalStateException("Bu işlem için yetkiniz yok. Sadece kendi kitabınızı iade edebilirsiniz.");
+        }
+
         if (borrowing.getReturnDate() != null) {
             throw new IllegalStateException("Book already returned");
         }

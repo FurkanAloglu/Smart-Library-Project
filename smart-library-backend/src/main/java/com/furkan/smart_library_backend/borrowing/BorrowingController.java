@@ -38,7 +38,7 @@ public class BorrowingController {
         return ResponseEntity.ok(borrowingService.borrowBook(request, principal.getName()));
     }
 
-    @PostMapping("/{id}/return")
+    @PutMapping("/{id}/return")
     public ResponseEntity<Void> returnBook(
             @PathVariable UUID id,
             Principal principal

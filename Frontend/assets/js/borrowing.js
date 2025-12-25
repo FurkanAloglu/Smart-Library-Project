@@ -35,6 +35,7 @@ export async function returnBook(borrowingId) {
         showToast("Kitap iade edildi. Teşekkürler!", "success");
         return true;
     } catch (error) {
+        console.error("İade Hatası Detayı:", error);
         showToast("İade başarısız!", "error");
         return false;
     }
