@@ -293,30 +293,38 @@
         containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
     });
 
-    async function init() {
-        try {
-            currentUser = await loadNavbar();
-            if (currentUser?.role === 'ADMIN') {
-                document.getElementById('adminButtonParams').classList.remove('hidden');
-            }
+    console.log("Dashboard script loaded");
 
-            // 1. ÖNCE BUTONLARI BAĞLA (Veri gelmese bile çalışsınlar)
-            // Bu fonksiyonları init'in en tepesine aldık ki hata olsa bile butonlar bassın.
-            setupBookModalLogic(authorSelectControl, categorySelectControl);
-            setupExtraModals();
-
-            // 2. SONRA VERİLERİ ÇEK (Hata olursa catch'e düşer ama butonlar çoktan bağlandı)
-            const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
-            cache.authors = authors; cache.categories = categories;
-
-            await refreshData();
-
-        } catch (e) { 
-            console.error("Başlangıç hatası:", e); 
-            // Hata olsa bile kullanıcıya gösterelim
-            showToast("Veriler yüklenirken hata oluştu: " + e.message, "error");
+async function init() {
+    try {
+        currentUser = await loadNavbar();
+        
+        // Admin kontrolü
+        if (currentUser?.role === 'ADMIN') {
+            const adminPanel = document.getElementById('adminButtonParams');
+            if(adminPanel) adminPanel.classList.remove('hidden');
+            else console.error("Admin paneli div'i bulunamadı!");
         }
+
+        // 1. KRİTİK: Önce logic'i kur, veri sonra gelsin.
+        // setupBookModalLogic içinde 'document.getElementById' null dönüyor olabilir mi?
+        // HTML ID'lerin doğruluğunu teyit et.
+        setupBookModalLogic(authorSelectControl, categorySelectControl);
+        setupExtraModals();
+        console.log("Event listener'lar bağlandı.");
+
+        // 2. Verileri çek
+        const [authors, categories] = await Promise.all([getAuthors(), getCategories()]);
+        cache.authors = authors || [];
+        cache.categories = categories || [];
+        
+        await refreshData();
+
+    } catch (e) { 
+        console.error("Başlangıç hatası (Init Crash):", e); 
+        showToast("Sistem başlatılamadı: " + e.message, "error");
     }
+}
 
     function setupBookModalLogic(authorSelectControl, categorySelectControl) {
         const modalId = 'addBookModal';
