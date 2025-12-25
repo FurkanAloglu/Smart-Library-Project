@@ -8,6 +8,7 @@ import com.furkan.smart_library_backend.category.Category;
 import com.furkan.smart_library_backend.category.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,18 +47,27 @@ public class BookService {
         Set<Author> authors = fetchAuthors(request.authorIds());
         Set<Category> categories = fetchCategories(request.categoryIds());
 
-        Book book = Book.builder()
-                .title(request.title())
-                .description(request.description())
-                .isbn(request.isbn())
-                .stock(request.stock())
-                .imageUrl(request.imageUrl())
-                .authors(authors)
-                .categories(categories)
-                .deleted(false)
-                .build();
+        try {
+            Book book = Book.builder()
+                    .id(UUID.randomUUID()) // UUID kullanıyorsan elle set etmen gerekebilir (DB'ye göre değişir)
+                    .title(request.title())
+                    .description(request.description())
+                    .isbn(request.isbn())
+                    .stock(request.stock())
+                    .imageUrl(request.imageUrl())
+                    .authors(authors)
+                    .categories(categories)
+                    .deleted(false)
+                    .build();
 
-        return BookResponse.fromEntity(bookRepository.save(book));
+            return BookResponse.fromEntity(bookRepository.save(book));
+        } catch (DataAccessException e) {
+            // Veritabanı seviyesinde bir hata (bağlantı, kısıt vb.) oluşursa fırlatıyoruz
+            throw new RuntimeException("Veritabanı işlemi sırasında teknik bir hata oluştu: " + e.getMessage());
+        } catch (Exception e) {
+            // Beklenmedik diğer tüm hatalar için
+            throw new RuntimeException("Kitap oluşturulurken öngörülemeyen bir hata meydana geldi.", e);
+        }
     }
 
     @Transactional

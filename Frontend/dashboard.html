@@ -80,7 +80,7 @@
                                 <label class="block text-sm font-medium text-slate-700 mb-1">ISBN Numarası</label>
                                 <div class="flex gap-2">
                                     <input type="text" name="isbn" id="isbnInput" required placeholder="978..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-200 focus:border-blue-500 outline-none">
-                                    <button type="button" id="fetchCoverBtn" class="bg-blue-50 text-blue-600 px-4 rounded-xl hover:bg-blue-100 transition text-sm font-bold">Kapak Bul</button>
+                                    <button type="button" id="fetchCoverBtn" class="bg-blue-50 text-blue-600 px-4 rounded-xl hover:bg-blue-100 transition text-sm font-bold">Otomatik Doldur</button>
                                 </div>
                             </div>
 
@@ -181,7 +181,7 @@
     import { loadNavbar, showToast } from './assets/js/layout.js';
     import { getAllBooks, deleteBook, getAuthors, getCategories, createBook } from './assets/js/book.js';
     import { borrowBook } from './assets/js/borrowing.js';
-    import { fetchBookCover } from './assets/js/google-books.js';
+    import { fetchBookDetails } from './assets/js/google-books.js'; // İSİM DEĞİŞTİ: fetchBookCover -> fetchBookDetails
     import { request } from './assets/js/api.js';
 
     let currentUser = null;
@@ -213,6 +213,7 @@
     }
 
     // --- INFINITE SCROLL + SEARCH SELECT ENGINE ---
+    // GÜNCELLEME: Artık dışarıdan item seçilebilmesi için selectExternal fonksiyonunu dışarı açıyor.
     function setupPaginatedSelect(type, config) {
         const { searchId, dropdownId, containerId, hiddenId } = config;
         const searchInput = document.getElementById(searchId);
@@ -284,10 +285,14 @@
             if (!tagsContainer.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden');
         });
 
-        return () => {
-            selectedIds = [];
-            updateHidden();
-            tagsContainer.querySelectorAll('.tag-badge').forEach(t => t.remove());
+        // GÜNCELLENDİ: Artık bir obje dönüyor
+        return {
+            reset: () => {
+                selectedIds = [];
+                updateHidden();
+                tagsContainer.querySelectorAll('.tag-badge').forEach(t => t.remove());
+            },
+            selectExternal: (item) => selectItem(item)
         };
     }
 
@@ -303,16 +308,17 @@
             cache.authors = authors; cache.categories = categories;
 
             // Select Yapılarını Kur
-            const resetA = setupPaginatedSelect('authors', {
+            // GÜNCELLEME: Değişkenler artık birer obje
+            const authorSelectControl = setupPaginatedSelect('authors', {
                 searchId: 'authorSearchInput', dropdownId: 'authorDropdownList',
                 containerId: 'authorTagsContainer', hiddenId: 'hiddenAuthorIds'
             });
-            const resetC = setupPaginatedSelect('categories', {
+            const categorySelectControl = setupPaginatedSelect('categories', {
                 searchId: 'categorySearchInput', dropdownId: 'categoryDropdownList',
                 containerId: 'categoryTagsContainer', hiddenId: 'hiddenCategoryIds'
             });
 
-            setupBookModalLogic(resetA, resetC);
+            setupBookModalLogic(authorSelectControl, categorySelectControl);
             setupExtraModals();
             await refreshData();
 
@@ -320,7 +326,7 @@
     }
 
     // --- KİTAP EKLEME MODALI ---
-    function setupBookModalLogic(resetA, resetC) {
+    function setupBookModalLogic(authorSelectControl, categorySelectControl) {
         const modalId = 'addBookModal';
         const form = document.getElementById('addBookForm');
 
@@ -329,20 +335,83 @@
         document.querySelectorAll('.closeModalBtn').forEach(btn => 
             btn.onclick = () => {
                 toggleModal(modalId, false);
-                setTimeout(() => { form.reset(); resetA(); resetC(); }, 300);
+                // GÜNCELLEME: Reset fonksiyonları obje üzerinden çağrılıyor
+                setTimeout(() => { form.reset(); authorSelectControl.reset(); categorySelectControl.reset(); }, 300);
             }
         );
 
+        // --- YENİ MANTIK: GOOGLE BOOKS OTOMASYONU ---
         document.getElementById('fetchCoverBtn').onclick = async () => {
+            const btn = document.getElementById('fetchCoverBtn');
             const isbn = document.getElementById('isbnInput').value;
+            
             if (!isbn) return showToast("Lütfen ISBN girin", "info");
-            const url = await fetchBookCover(isbn);
-            if (url) {
-                document.getElementById('imageUrlInput').value = url;
-                document.getElementById('coverImage').src = url;
-                document.getElementById('coverImage').classList.remove('hidden');
-                document.getElementById('coverPreview').classList.add('hidden');
-            } else showToast("Kapak bulunamadı", "error");
+            
+            // UI Feedback
+            const originalText = btn.innerText;
+            btn.innerText = "Getiriliyor...";
+            btn.disabled = true;
+
+            try {
+                // google-books.js içinde güncellenmiş fonksiyonu çağırıyoruz
+                const data = await fetchBookDetails(isbn);
+                
+                if (!data) {
+                    showToast("Kitap bulunamadı!", "error");
+                    return;
+                }
+
+                // 1. Text Alanlarını Doldur
+                document.querySelector('[name=title]').value = data.title;
+                document.querySelector('[name=description]').value = 
+                    (data.description ? data.description.substring(0, 300) + "..." : "") + 
+                    `\n\n(Sayfa: ${data.pageCount}, Yıl: ${data.publishedDate})`;
+                
+                if(data.image) {
+                    document.getElementById('imageUrlInput').value = data.image;
+                    document.getElementById('coverImage').src = data.image;
+                    document.getElementById('coverImage').classList.remove('hidden');
+                    document.getElementById('coverPreview').classList.add('hidden');
+                }
+
+                // 2. YAZARLARI İŞLE (Bul veya Oluştur)
+                for (const authName of data.authors) {
+                    let existing = cache.authors.find(a => a.name.toLowerCase() === authName.toLowerCase());
+                    
+                    if (!existing) {
+                        try {
+                            existing = await request('/authors', 'POST', { name: authName });
+                            cache.authors.push(existing);
+                            showToast(`Yazar eklendi: ${authName}`, "success");
+                        } catch (e) { console.error("Yazar hatası:", authName); }
+                    }
+                    if (existing) authorSelectControl.selectExternal(existing);
+                }
+
+                // 3. KATEGORİLERİ İŞLE (Bul veya Oluştur)
+                for (const catName of data.categories) {
+                    const cleanCatName = catName.split('/')[0].trim(); // Basitleştirme
+                    let existing = cache.categories.find(c => c.name.toLowerCase() === cleanCatName.toLowerCase());
+                    
+                    if (!existing) {
+                        try {
+                            existing = await request('/categories', 'POST', { name: cleanCatName });
+                            cache.categories.push(existing);
+                            showToast(`Kategori eklendi: ${cleanCatName}`, "success");
+                        } catch (e) { console.error("Kategori hatası:", cleanCatName); }
+                    }
+                    if (existing) categorySelectControl.selectExternal(existing);
+                }
+
+                showToast("Bilgiler Google'dan çekildi!", "success");
+
+            } catch (error) {
+                console.error(error);
+                showToast("Hata: " + error.message, "error");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
         };
 
         form.onsubmit = async (e) => {
@@ -355,7 +424,8 @@
             if (await createBook(data)) { 
                 showToast("Kitap Sisteme Eklendi", "success"); 
                 toggleModal(modalId, false); 
-                form.reset(); resetA(); resetC();
+                // GÜNCELLEME: Reset fonksiyonları obje üzerinden çağrılıyor
+                form.reset(); authorSelectControl.reset(); categorySelectControl.reset();
                 refreshData(); 
             }
         };

@@ -1,21 +1,29 @@
-export async function fetchBookCover(isbn) {
+export async function fetchBookDetails(isbn) {
     if (!isbn) return null;
-    
-    // ISBN temizliği (tireleri kaldır)
     const cleanIsbn = isbn.replace(/-/g, '');
-    
+
     try {
         const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`);
         const data = await response.json();
+
+        if (data.totalItems > 0) {
+            const info = data.items[0].volumeInfo;
+            
         
-        if (data.totalItems > 0 && data.items[0].volumeInfo.imageLinks) {
-            // Küçük resim yerine daha büyük olanı tercih edelim
-            return data.items[0].volumeInfo.imageLinks.thumbnail || 
-                   data.items[0].volumeInfo.imageLinks.smallThumbnail;
+            return {
+                title: info.title,
+                description: info.description || "",
+                pageCount: info.pageCount || 0,
+                authors: info.authors || [], 
+                categories: info.categories || [],
+                image: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+                       info.imageLinks?.smallThumbnail?.replace('http:', 'https:') || null,
+                publishedDate: info.publishedDate
+            };
         }
         return null;
     } catch (error) {
-        console.error("Google Kitap Kapağı Bulunamadı:", error);
+        console.error("Google API Hatası:", error);
         return null;
     }
 }
