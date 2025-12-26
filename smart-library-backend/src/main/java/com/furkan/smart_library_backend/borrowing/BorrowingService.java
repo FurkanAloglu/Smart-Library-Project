@@ -5,6 +5,8 @@ import com.furkan.smart_library_backend.book.BookRepository;
 import com.furkan.smart_library_backend.borrowing.dto.BorrowingRequest;
 import com.furkan.smart_library_backend.borrowing.dto.BorrowingResponse;
 import com.furkan.smart_library_backend.mail.MailService;
+import com.furkan.smart_library_backend.penalty.Penalty;
+import com.furkan.smart_library_backend.penalty.PenaltyRepository;
 import com.furkan.smart_library_backend.user.User;
 import com.furkan.smart_library_backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -25,9 +27,9 @@ public class BorrowingService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final MailService mailService;
+    private final PenaltyRepository penaltyRepository;
 
-    // public static final BigDecimal DAILY_FEE... -> SİLDİM.
-    // Çünkü artık ücreti Veritabanı Trigger'ı biliyor, Java'nın bilmesine gerek yok.
+
 
     public List<BorrowingResponse> getMyBorrowings(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
@@ -48,8 +50,17 @@ public class BorrowingService {
 
     @Transactional
     public BorrowingResponse borrowBook(BorrowingRequest request, String userEmail) {
+
         User user = userRepository.findByEmailAndDeletedFalse(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        // ✅ CEZA KONTROLÜ (EN BAŞTA)
+        List<Penalty> userPenalties = penaltyRepository.findAllByUserId(user.getId());
+        if (!userPenalties.isEmpty()) {
+            throw new IllegalStateException(
+                    "Ödenmemiş cezalarınız bulunmaktadır. Lütfen önce borcunuzu ödeyin."
+            );
+        }
 
         Book book = bookRepository.findByIdAndDeletedFalse(request.bookId())
                 .orElseThrow(() -> new EntityNotFoundException("Book not found"));
@@ -58,7 +69,9 @@ public class BorrowingService {
             throw new IllegalStateException("Book is out of stock");
         }
 
-        boolean alreadyHas = borrowingRepository.existsByUserIdAndBookIdAndReturnDateIsNull(user.getId(), book.getId());
+        boolean alreadyHas = borrowingRepository
+                .existsByUserIdAndBookIdAndReturnDateIsNull(user.getId(), book.getId());
+
         if (alreadyHas) {
             throw new IllegalStateException("You already have this book borrowed");
         }
@@ -67,12 +80,13 @@ public class BorrowingService {
                 .user(user)
                 .book(book)
                 .borrowDate(LocalDateTime.now())
-                .dueDate(LocalDateTime.now().plusMinutes(1))
+                .dueDate(LocalDateTime.now().plusMinutes(1)) // test amaçlı
                 .build();
 
         Borrowing saved = borrowingRepository.save(borrowing);
         return BorrowingResponse.fromEntity(saved);
     }
+
 
     @Transactional
     public void returnBook(UUID borrowingId, String userEmail) {

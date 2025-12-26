@@ -6,11 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface PenaltyRepository extends JpaRepository<Penalty, UUID> {
+    boolean existsByBorrowing_User_IdAndAmountGreaterThan(UUID userId, BigDecimal amount);
 
     @Query("SELECT p FROM Penalty p WHERE p.borrowing.user.id = :userId ORDER BY p.createdAt DESC")
     List<Penalty> findAllByUserId(@Param("userId") UUID userId);
