@@ -11,7 +11,8 @@ public record PenaltyResponse(
         String bookTitle,
         String userName,
         LocalDateTime returnDate,
-        LocalDateTime dueDate
+        LocalDateTime dueDate,
+        boolean isPaid // EKLENDİ
 ) {
     public static PenaltyResponse fromEntity(Penalty penalty) {
         return new PenaltyResponse(
@@ -20,7 +21,8 @@ public record PenaltyResponse(
                 penalty.getBorrowing().getBook().getTitle(),
                 penalty.getBorrowing().getUser().getFullName(),
                 penalty.getBorrowing().getReturnDate(),
-                penalty.getBorrowing().getDueDate()
+                penalty.getBorrowing().getDueDate(),
+                penalty.isPaid() // EKLENDİ
         );
     }
 }

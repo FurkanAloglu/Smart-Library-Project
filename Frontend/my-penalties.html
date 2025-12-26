@@ -99,104 +99,159 @@
     <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
 
     <script type="module">
-        import { loadNavbar, showToast } from './assets/js/layout.js';
-        import { request } from './assets/js/api.js';
+    import { loadNavbar, showToast } from './assets/js/layout.js';
+    import { request } from './assets/js/api.js';
 
-        async function init() {
-            await loadNavbar();
-            loadPenalties();
-        }
+    async function init() {
+        await loadNavbar();
+        await loadPenalties();
+    }
 
-        async function loadPenalties() {
-            try {
-                // Backend endpoint düzeltildi: /my
-                const penalties = await request('/penalties/my'); 
+    async function loadPenalties() {
+        try {
+            // Backend endpoint
+            const penalties = await request('/penalties/my');
 
-                const tbody = document.getElementById('penaltyTableBody');
-                tbody.innerHTML = '';
-                
-                let totalDebt = 0;
+            const tbody = document.getElementById('penaltyTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const totalDebtEl = document.getElementById('totalDebt');
 
-                if (!penalties || penalties.length === 0) {
-                    document.getElementById('emptyState').classList.remove('hidden');
-                    return;
-                }
+            tbody.innerHTML = '';
+            emptyState.classList.add('hidden');
 
-                penalties.forEach(p => {
-                    if (!p.isPaid) totalDebt += p.amount;
+            let totalDebt = 0;
 
-                    // DÜZELTME: onclick içinde ID string olduğu için tırnak işareti ('${p.id}') eklendi.
-                    const row = `
-                        <tr class="hover:bg-slate-50 transition">
-                            <td class="px-6 py-4 font-medium text-slate-800">${p.bookTitle || 'Bilinmeyen Kitap'}</td>
-                            <td class="px-6 py-4 text-slate-500">${p.delayDays || 0} Gün</td>
-                            <td class="px-6 py-4 font-bold text-slate-800">${p.amount} TL</td>
-                            <td class="px-6 py-4">
-                                ${p.isPaid 
-                                    ? '<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">Ödendi</span>' 
-                                    : '<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold">Ödenmedi</span>'}
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                ${!p.isPaid 
-                                    ? `<button onclick="openPaymentModal('${p.id}', ${p.amount})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm transition">Öde</button>` 
-                                    : '<span class="text-slate-400 text-xs"><i class="fa-solid fa-check"></i></span>'}
-                            </td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += row;
-                });
-
-                document.getElementById('totalDebt').textContent = totalDebt.toFixed(2) + ' TL';
-
-            } catch (error) {
-                console.error(error);
-                if(error.message && error.message.includes('No static resource')) {
-                   showToast("API hatası: Tarayıcı önbelleğini temizleyin veya backend'i kontrol edin.", "error");
-                } else {
-                   showToast("Cezalar yüklenemedi: " + error.message, "error");
-                }
+            if (!penalties || penalties.length === 0) {
+                emptyState.classList.remove('hidden');
+                totalDebtEl.textContent = '0.00 TL';
+                return;
             }
+
+            // Ödenmemişler önce
+            penalties.sort((a, b) => Number(a.isPaid) - Number(b.isPaid));
+
+            penalties.forEach(p => {
+                // Toplam borç
+                if (!p.isPaid) totalDebt += p.amount;
+
+                // -------- GECİKME GÜNÜ HESAPLAMA --------
+                let delayText = '?';
+
+                if (p.dueDate && p.returnDate) {
+                    const due = new Date(p.dueDate);
+                    const returned = new Date(p.returnDate);
+
+                    if (returned > due) {
+                        const diffTime = returned - due;
+                        delayText = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    } else {
+                        delayText = 0;
+                    }
+                }
+                // --------------------------------------
+
+                const rowClass = p.isPaid
+                    ? 'bg-slate-50 text-slate-400 grayscale opacity-75'
+                    : 'hover:bg-slate-50 transition text-slate-800';
+
+                const statusBadge = p.isPaid
+                    ? `<span class="px-3 py-1 bg-slate-200 text-slate-500 rounded-full text-xs font-bold border border-slate-300">
+                        ÖDENDİ
+                       </span>`
+                    : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold border border-rose-200 animate-pulse">
+                        ÖDENMEDİ
+                       </span>`;
+
+                const actionButton = p.isPaid
+                    ? `<span class="text-slate-400 text-xs italic">
+                        <i class="fa-solid fa-check-double mr-1"></i>Tamamlandı
+                       </span>`
+                    : `<button onclick="openPaymentModal('${p.id}', ${p.amount})"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold
+                               hover:bg-blue-700 shadow-sm transition
+                               hover:shadow-md hover:-translate-y-0.5">
+                        Öde
+                       </button>`;
+
+                const row = `
+                    <tr class="${rowClass} border-b border-slate-100 last:border-0">
+                        <td class="px-6 py-4 font-medium">
+                            ${p.bookTitle || 'Bilinmeyen Kitap'}
+                        </td>
+
+                        <td class="px-6 py-4 text-sm font-bold text-slate-500">
+                            ${delayText} Gün
+                        </td>
+
+                        <td class="px-6 py-4 font-bold font-mono">
+                            ${p.amount} ₺
+                        </td>
+
+                        <td class="px-6 py-4">
+                            ${statusBadge}
+                        </td>
+
+                        <td class="px-6 py-4 text-right">
+                            ${actionButton}
+                        </td>
+                    </tr>
+                `;
+
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            totalDebtEl.textContent = totalDebt.toFixed(2) + ' TL';
+
+        } catch (error) {
+            console.error(error);
+            showToast('Cezalar yüklenemedi: ' + error.message, 'error');
         }
+    }
 
-        // Global fonksiyonlar
-        window.openPaymentModal = (id, amount) => {
-            document.getElementById('modalPenaltyId').value = id;
-            document.getElementById('modalAmount').textContent = amount.toFixed(2) + ' TL';
-            document.getElementById('paymentModal').classList.remove('hidden');
-        };
+    // -------- GLOBAL MODAL FONKSİYONLARI --------
+    window.openPaymentModal = (id, amount) => {
+        document.getElementById('modalPenaltyId').value = id;
+        document.getElementById('modalAmount').textContent = amount.toFixed(2) + ' TL';
+        document.getElementById('paymentModal').classList.remove('hidden');
+    };
 
-        window.closePaymentModal = () => {
-            document.getElementById('paymentModal').classList.add('hidden');
-        };
+    window.closePaymentModal = () => {
+        document.getElementById('paymentModal').classList.add('hidden');
+    };
+    // -------------------------------------------
 
-        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('modalPenaltyId').value;
-            const btn = e.target.querySelector('button');
-            const originalText = btn.innerHTML;
+    // -------- ÖDEME FORMU --------
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> İşleniyor...';
-            btn.disabled = true;
+        const id = document.getElementById('modalPenaltyId').value;
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerHTML;
 
-            try {
-                await new Promise(r => setTimeout(r, 1000)); 
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> İşleniyor...';
+        btn.disabled = true;
 
-                // Backend UUID aldığı için URL yapısı: /api/penalties/{uuid}/pay
-                await request(`/penalties/${id}/pay`, 'POST');
-                
-                showToast("Ödeme alındı, teşekkürler!", "success");
-                closePaymentModal();
-                loadPenalties(); 
+        try {
+            // Fake delay (simülasyon)
+            await new Promise(r => setTimeout(r, 1000));
 
-            } catch (error) {
-                showToast(error.message || "Ödeme başarısız.", "error");
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        });
+            await request(`/penalties/${id}/pay`, 'POST');
 
-        init();
-    </script>
+            showToast('Ödeme alındı, teşekkürler!', 'success');
+            closePaymentModal();
+            await loadPenalties();
+
+        } catch (error) {
+            showToast(error.message || 'Ödeme başarısız.', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+    // ----------------------------
+
+    init();
+</script>
+
 </body>
 </html>
