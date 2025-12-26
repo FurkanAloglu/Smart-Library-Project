@@ -7,7 +7,7 @@ v_minutes_late BIGINT;
 BEGIN
     IF OLD.return_date IS NULL AND NEW.return_date IS NOT NULL THEN
         IF NEW.return_date > NEW.due_date THEN
-            -- DÜZELTME: CEIL ile yukarı yuvarla, 1 sn gecikme bile 1 dk sayılsın
+            -- Dakika farkını al ve yukarı yuvarla
             v_minutes_late := CEIL(EXTRACT(EPOCH FROM (NEW.return_date - NEW.due_date)) / 60);
 
             IF v_minutes_late > 0 THEN
@@ -21,3 +21,10 @@ END IF;
 RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_calculate_penalty ON borrowings;
+
+CREATE TRIGGER trg_calculate_penalty
+    AFTER UPDATE ON borrowings
+    FOR EACH ROW
+    EXECUTE FUNCTION calculate_penalty_trigger_fn();

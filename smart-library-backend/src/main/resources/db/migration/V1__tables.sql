@@ -45,7 +45,7 @@ CREATE TABLE borrowings (
 
 CREATE TABLE penalties (
                            id UUID PRIMARY KEY,
-                           borrowing_id UUID NOT NULL UNIQUE REFERENCES borrowings(id),
+                           borrowing_id UUID NOT NULL REFERENCES borrowings(id),
                            amount DECIMAL(10, 2) NOT NULL,
                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
