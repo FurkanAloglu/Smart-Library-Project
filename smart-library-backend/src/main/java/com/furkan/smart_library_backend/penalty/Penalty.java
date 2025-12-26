@@ -34,4 +34,10 @@ public class Penalty {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public boolean isPaid() {
+    }
+
+    public void setPaid(boolean b) {
+    }
 }
