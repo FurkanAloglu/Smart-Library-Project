@@ -24,7 +24,7 @@ CREATE TRIGGER trg_decrease_stock
 CREATE OR REPLACE FUNCTION increase_book_stock()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF OLD.returned_date IS NULL AND NEW.returned_date IS NOT NULL THEN
+    IF OLD.return_date IS NULL AND NEW.return_date IS NOT NULL THEN
 UPDATE books
 SET stock = stock + 1
 WHERE id = NEW.book_id;
