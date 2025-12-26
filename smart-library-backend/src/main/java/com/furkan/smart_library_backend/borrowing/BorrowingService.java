@@ -11,14 +11,16 @@ import com.furkan.smart_library_backend.user.User;
 import com.furkan.smart_library_backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import java.time.LocalDateTime; // DEĞİŞTİ: Artık tarih+saat tutuyoruz
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BorrowingService {
@@ -54,7 +56,6 @@ public class BorrowingService {
         User user = userRepository.findByEmailAndDeletedFalse(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        // ✅ CEZA KONTROLÜ (EN BAŞTA)
         List<Penalty> userPenalties = penaltyRepository.findAllByUserId(user.getId());
         if (!userPenalties.isEmpty()) {
             throw new IllegalStateException(
@@ -101,15 +102,18 @@ public class BorrowingService {
             throw new IllegalStateException("Book already returned");
         }
 
-        // DEĞİŞTİ: İade anının saat ve dakikasını basıyoruz
         borrowing.setReturnDate(LocalDateTime.now());
+        log.info("Kitap İadesi: BorrowingId={} | DueDate={} | ReturnDate={} | Gecikme Var mı?={}",
+                borrowing.getId(),
+                borrowing.getDueDate(),
+                borrowing.getReturnDate(),
+                borrowing.getReturnDate().isAfter(borrowing.getDueDate())
+        );
+
         borrowingRepository.save(borrowing);
 
-        // DEĞİŞTİ: Değişikliği anında veritabanına itiyoruz ki TRIGGER uyansın.
         borrowingRepository.flush();
 
-        // SİLİNDİ: borrowingRepository.callCalculatePenalty(...)
-        // Artık Java hesaplamıyor, veritabanı kendi hallediyor.
 
         if (borrowing.getReturnDate().isAfter(borrowing.getDueDate())) {
             mailService.sendLateReturnNotification(
