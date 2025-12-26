@@ -170,20 +170,52 @@
             </div>
         </div>
     </div>
-    <div id="bookDetailModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full relative transform transition-all scale-100">
-        <button onclick="document.getElementById('bookDetailModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-            <i class="fa-solid fa-xmark text-xl"></i>
+    <div id="drawerBackdrop" 
+     onclick="closeDrawer()"
+     class="fixed inset-0 z-[60] bg-slate-900/30 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+</div>
+
+<div id="bookDrawer" 
+     class="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    
+    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
+        <h3 class="font-bold text-slate-800 text-lg">Kitap Detayı</h3>
+        <button onclick="closeDrawer()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
+            <i class="fa-solid fa-xmark"></i>
         </button>
-        <h3 id="modalTitle" class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2"></h3>
-        <div class="space-y-4">
-            <p id="modalDesc" class="text-gray-600 leading-relaxed text-sm"></p>
-            <div class="bg-blue-50 p-4 rounded-lg flex items-center gap-3">
-                 <i class="fa-solid fa-barcode text-blue-500"></i>
-                 <span id="modalIsbn" class="font-mono text-blue-700 font-bold"></span>
+    </div>
+
+    <div class="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-6">
+        
+        <div class="relative w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
+            <img id="drawerImage" src="" class="w-full h-full object-cover transition duration-700 group-hover:scale-105" alt="Kitap Kapağı">
+            <div id="drawerStockBadge" class="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm"></div>
+        </div>
+
+        <div>
+            <h2 id="drawerTitle" class="text-2xl font-bold text-slate-800 leading-tight mb-2"></h2>
+            <div class="flex items-center gap-2 text-slate-500 font-medium">
+                <i class="fa-solid fa-feather-pointed text-blue-500"></i>
+                <span id="drawerAuthor"></span>
+            </div>
+        </div>
+
+        <div id="drawerCategories" class="flex flex-wrap gap-2"></div>
+
+        <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-4">
+            <div class="flex items-center gap-3 text-sm text-slate-500 border-b border-slate-200 pb-3">
+                <i class="fa-solid fa-barcode text-xl"></i>
+                <span id="drawerIsbn" class="font-mono tracking-wider font-bold text-slate-700"></span>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Açıklama</h4>
+                <p id="drawerDesc" class="text-slate-600 text-sm leading-relaxed whitespace-pre-line"></p>
             </div>
         </div>
     </div>
+
+    <div class="p-6 border-t border-slate-100 bg-white" id="drawerFooter">
+        </div>
 </div>
 
     <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
@@ -558,11 +590,88 @@
         window.handleBorrow = async (id) => { if(await borrowBook(id)) refreshData(); };
 
         init();
-        window.showDetail = (book) => {
-    document.getElementById('modalTitle').innerText = book.title;
-    document.getElementById('modalDesc').innerText = book.description || "Açıklama girilmemiş.";
-    document.getElementById('modalIsbn').innerText = book.isbn;
-    document.getElementById('bookDetailModal').classList.remove('hidden');
+        // Yan Paneli Açan Fonksiyon
+window.showDetail = (book) => {
+    const drawer = document.getElementById('bookDrawer');
+    const backdrop = document.getElementById('drawerBackdrop');
+    
+    // 1. Verileri Doldur
+    document.getElementById('drawerTitle').innerText = book.title;
+    document.getElementById('drawerAuthor').innerText = book.authors?.map(a => a.name).join(', ') || 'Yazar Bilinmiyor';
+    document.getElementById('drawerIsbn').innerText = book.isbn;
+    
+    const descText = book.description ? book.description : "Bu kitap için henüz bir açıklama girilmemiş.";
+    document.getElementById('drawerDesc').innerText = descText;
+
+    // Resim Ayarı
+    const imgEl = document.getElementById('drawerImage');
+    imgEl.src = book.imageUrl || './assets/js/library-bg.jpg';
+
+    // Stok Rozeti Ayarı
+    const badge = document.getElementById('drawerStockBadge');
+    if (book.stock > 0) {
+        badge.className = "absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm bg-emerald-500 text-white";
+        badge.innerText = `STOKTA: ${book.stock}`;
+    } else {
+        badge.className = "absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm bg-rose-500 text-white";
+        badge.innerText = "TÜKENDİ";
+    }
+
+    // Kategorileri Rozet Olarak Ekle
+    const catContainer = document.getElementById('drawerCategories');
+    catContainer.innerHTML = book.categories?.map(c => 
+        `<span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg border border-blue-100">${c.name}</span>`
+    ).join('') || '';
+
+    // 2. Footer Butonunu Ayarla (Dinamik)
+    const footer = document.getElementById('drawerFooter');
+    
+    if (currentUser.role === 'ADMIN') {
+        // Admin ise Düzenle Butonu Göster
+        footer.innerHTML = `
+            <button onclick="closeDrawer(); window.handleEdit('${book.id}')" class="w-full py-3.5 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-pen-to-square"></i> Düzenle
+            </button>
+        `;
+    } else {
+        // Normal Kullanıcı ise Ödünç Al Butonu
+        if (book.stock > 0) {
+            footer.innerHTML = `
+                <button onclick="closeDrawer(); window.handleBorrow('${book.id}')" class="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i> Hemen Ödünç Al
+                </button>
+            `;
+        } else {
+            footer.innerHTML = `
+                <button disabled class="w-full py-3.5 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed flex items-center justify-center gap-2 border border-slate-200">
+                    <i class="fa-regular fa-face-sad-tear"></i> Stokta Yok
+                </button>
+            `;
+        }
+    }
+
+    // 3. Paneli Aç (Animasyonlu)
+    backdrop.classList.remove('hidden');
+    // Tarayıcının render yapması için minik bir gecikme şart (fade effect için)
+    setTimeout(() => {
+        backdrop.classList.remove('opacity-0');
+        drawer.classList.remove('translate-x-full');
+    }, 10);
+};
+
+// Yan Paneli Kapatan Fonksiyon
+window.closeDrawer = () => {
+    const drawer = document.getElementById('bookDrawer');
+    const backdrop = document.getElementById('drawerBackdrop');
+
+    // Önce paneli dışarı it ve opacity düşür
+    drawer.classList.add('translate-x-full');
+    backdrop.classList.add('opacity-0');
+
+    // Animasyon bitince gizle (300ms transition süresiyle uyumlu)
+    setTimeout(() => {
+        backdrop.classList.add('hidden');
+    }, 300);
 };
     </script>
 </body>
