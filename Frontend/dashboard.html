@@ -170,6 +170,21 @@
             </div>
         </div>
     </div>
+    <div id="bookDetailModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full relative transform transition-all scale-100">
+        <button onclick="document.getElementById('bookDetailModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+        <h3 id="modalTitle" class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2"></h3>
+        <div class="space-y-4">
+            <p id="modalDesc" class="text-gray-600 leading-relaxed text-sm"></p>
+            <div class="bg-blue-50 p-4 rounded-lg flex items-center gap-3">
+                 <i class="fa-solid fa-barcode text-blue-500"></i>
+                 <span id="modalIsbn" class="font-mono text-blue-700 font-bold"></span>
+            </div>
+        </div>
+    </div>
+</div>
 
     <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
 
@@ -421,7 +436,6 @@
             currentPage = page;
             const start = (page - 1) * itemsPerPage;
             
-            // DİKKAT: Artık filteredBooks kullanıyoruz
             const paged = filteredBooks.slice(start, start + itemsPerPage);
             const grid = document.getElementById('bookGrid');
             
@@ -435,8 +449,11 @@
             document.getElementById('emptyMessage').classList.add('hidden');
             grid.classList.remove('hidden');
             
-            // DİKKAT: escapeHtml kullanımı ve filteredBooks referansı
-            grid.innerHTML = paged.map(book => `
+            grid.innerHTML = paged.map(book => {
+                // Kitap verisini güvenli stringe çeviriyoruz (Tırnak hatalarını önlemek için)
+                const bookData = JSON.stringify(book).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+
+                return `
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full animate-fade-up">
                     <div class="relative aspect-[2/3] bg-slate-50 border-b group">
                         <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
@@ -445,26 +462,40 @@
                     <div class="p-4 flex flex-col flex-grow">
                         <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</h3>
                         <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => escapeHtml(a.name)).join(', ') || 'Bilinmiyor'}</p>
-                        <div class="mt-auto pt-3 border-t border-slate-50 flex justify-between items-center gap-2">
+                        
+                        <div class="mt-auto pt-3 border-t border-slate-50 flex items-center gap-2">
                             ${currentUser?.role === 'ADMIN' ? 
-                                `<div class="flex justify-end gap-2 w-full">
-                                     <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2 bg-slate-50 rounded-lg hover:bg-blue-50">
+                                `
+                                <div class="flex justify-end gap-2 w-full">
+                                     <button onclick='window.showDetail(${bookData})' class="text-slate-400 hover:text-blue-600 transition p-2 bg-slate-50 rounded-lg hover:bg-blue-50" title="Detay">
+                                       <i class="fa-solid fa-eye"></i>
+                                     </button>
+                                     <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2 bg-slate-50 rounded-lg hover:bg-blue-50" title="Düzenle">
                                        <i class="fa-solid fa-pen-to-square"></i>
                                      </button>
-                                     <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2 bg-slate-50 rounded-lg hover:bg-rose-50">
+                                     <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2 bg-slate-50 rounded-lg hover:bg-rose-50" title="Sil">
                                       <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>`
                                 : 
-                                `<button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="w-full bg-blue-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                    ${book.stock > 0 ? 'Ödünç Al' : 'Tükendi'}
-                                </button>`}
+                                `
+                                <div class="flex gap-2 w-full">
+                                    <button onclick='window.showDetail(${bookData})' class="text-slate-400 hover:text-blue-600 transition p-2.5 bg-slate-50 rounded-lg hover:bg-blue-50 shrink-0" title="Detay">
+                                       <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="flex-grow bg-blue-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                        ${book.stock > 0 ? 'Ödünç Al' : 'Tükendi'}
+                                    </button>
+                                </div>
+                                `}
                         </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
             
             renderPagination();
         }
+        
 
         function renderPagination() {
             // DİKKAT: filteredBooks.length kullanıyoruz
@@ -527,6 +558,12 @@
         window.handleBorrow = async (id) => { if(await borrowBook(id)) refreshData(); };
 
         init();
+        window.showDetail = (book) => {
+    document.getElementById('modalTitle').innerText = book.title;
+    document.getElementById('modalDesc').innerText = book.description || "Açıklama girilmemiş.";
+    document.getElementById('modalIsbn').innerText = book.isbn;
+    document.getElementById('bookDetailModal').classList.remove('hidden');
+};
     </script>
 </body>
 </html>
