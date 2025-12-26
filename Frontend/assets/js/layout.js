@@ -41,6 +41,10 @@ export async function loadNavbar() {
         <a href="my-loans.html"
            class="text-sm font-medium text-gray-600 hover:text-blue-600 transition">
             Ödünç Aldıklarım
+        </a>
+        <a href="my-penalties.html"
+           class="text-sm font-medium text-gray-600 hover:text-rose-600 transition flex items-center gap-1">
+            <i class="fa-solid fa-receipt text-xs"></i> Cezalarım
         </a>`
         : '';
 
@@ -183,4 +187,5 @@ export function showToast(message, type = 'success') {
         toast.classList.add('translate-x-full', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+
 }
