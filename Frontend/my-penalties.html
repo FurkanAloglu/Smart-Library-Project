@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AKYS | Cezalarım</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -21,7 +22,7 @@
                 <p class="text-slate-500 text-sm font-bold">Toplam Ödenmemiş</p>
                 <h3 class="text-3xl font-black text-rose-600 mt-2" id="totalDebt">0.00 TL</h3>
             </div>
-            </div>
+        </div>
 
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table class="w-full text-left">
@@ -63,23 +64,23 @@
                         <input type="hidden" id="modalPenaltyId">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1">Kart Üzerindeki İsim</label>
-                            <input type="text" placeholder="AD SOYAD" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 uppercase">
+                            <input type="text" placeholder="AD SOYAD" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 uppercase" required>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1">Kart Numarası</label>
                             <div class="relative">
-                                <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full px-4 py-2 pl-10 rounded-lg border border-slate-200 outline-none focus:border-blue-500 font-mono">
+                                <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full px-4 py-2 pl-10 rounded-lg border border-slate-200 outline-none focus:border-blue-500 font-mono" required>
                                 <i class="fa-brands fa-cc-visa absolute left-3 top-2.5 text-slate-400 text-lg"></i>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 mb-1">SKT</label>
-                                <input type="text" placeholder="AA/YY" maxlength="5" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center">
+                                <input type="text" placeholder="AA/YY" maxlength="5" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 mb-1">CVV</label>
-                                <input type="text" placeholder="123" maxlength="3" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center">
+                                <input type="text" placeholder="123" maxlength="3" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center" required>
                             </div>
                         </div>
 
@@ -89,7 +90,7 @@
                     </form>
                 </div>
                 <div class="bg-slate-50 px-6 py-3 text-center">
-                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-shield-halved"></i> 256-bit SSL ile korunmaktadır (Şaka şaka, simülasyon bu).</p>
+                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-shield-halved"></i> 256-bit SSL ile korunmaktadır (Simülasyon).</p>
                 </div>
             </div>
         </div>
@@ -101,12 +102,6 @@
         import { loadNavbar, showToast } from './assets/js/layout.js';
         import { request } from './assets/js/api.js';
 
-        // Fake Data (Backend hazır değilse test etmen için)
-        // const mockPenalties = [
-        //     { id: 1, bookTitle: "Nutuk", amount: 15.50, isPaid: false, delayDays: 3 },
-        //     { id: 2, bookTitle: "Suç ve Ceza", amount: 45.00, isPaid: true, delayDays: 10 }
-        // ];
-
         async function init() {
             await loadNavbar();
             loadPenalties();
@@ -114,17 +109,15 @@
 
         async function loadPenalties() {
             try {
-                // Backend'in hazırsa burayı aç:
-                const penalties = await request('/penalties/my-penalties'); 
-                // Hazır değilse mock kullan:
-                // const penalties = mockPenalties; 
+                // Backend endpoint düzeltildi: /my
+                const penalties = await request('/penalties/my'); 
 
                 const tbody = document.getElementById('penaltyTableBody');
                 tbody.innerHTML = '';
                 
                 let totalDebt = 0;
 
-                if (penalties.length === 0) {
+                if (!penalties || penalties.length === 0) {
                     document.getElementById('emptyState').classList.remove('hidden');
                     return;
                 }
@@ -132,6 +125,7 @@
                 penalties.forEach(p => {
                     if (!p.isPaid) totalDebt += p.amount;
 
+                    // DÜZELTME: onclick içinde ID string olduğu için tırnak işareti ('${p.id}') eklendi.
                     const row = `
                         <tr class="hover:bg-slate-50 transition">
                             <td class="px-6 py-4 font-medium text-slate-800">${p.bookTitle || 'Bilinmeyen Kitap'}</td>
@@ -144,7 +138,7 @@
                             </td>
                             <td class="px-6 py-4 text-right">
                                 ${!p.isPaid 
-                                    ? `<button onclick="openPaymentModal(${p.id}, ${p.amount})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm transition">Öde</button>` 
+                                    ? `<button onclick="openPaymentModal('${p.id}', ${p.amount})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm transition">Öde</button>` 
                                     : '<span class="text-slate-400 text-xs"><i class="fa-solid fa-check"></i></span>'}
                             </td>
                         </tr>
@@ -155,12 +149,16 @@
                 document.getElementById('totalDebt').textContent = totalDebt.toFixed(2) + ' TL';
 
             } catch (error) {
-                showToast("Cezalar yüklenirken hata oluştu.", "error");
                 console.error(error);
+                if(error.message && error.message.includes('No static resource')) {
+                   showToast("API hatası: Tarayıcı önbelleğini temizleyin veya backend'i kontrol edin.", "error");
+                } else {
+                   showToast("Cezalar yüklenemedi: " + error.message, "error");
+                }
             }
         }
 
-        // Global Fonksiyonlar (HTML onclick için)
+        // Global fonksiyonlar
         window.openPaymentModal = (id, amount) => {
             document.getElementById('modalPenaltyId').value = id;
             document.getElementById('modalAmount').textContent = amount.toFixed(2) + ' TL';
@@ -177,23 +175,21 @@
             const btn = e.target.querySelector('button');
             const originalText = btn.innerHTML;
 
-            // Simülasyon efekti
             btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> İşleniyor...';
             btn.disabled = true;
 
             try {
-                // 1 saniye bekle (gerçekçilik katmak için)
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 1000)); 
 
-                // Backend isteği
+                // Backend UUID aldığı için URL yapısı: /api/penalties/{uuid}/pay
                 await request(`/penalties/${id}/pay`, 'POST');
                 
-                showToast("Ödeme başarıyla alındı!", "success");
+                showToast("Ödeme alındı, teşekkürler!", "success");
                 closePaymentModal();
-                loadPenalties(); // Listeyi yenile
+                loadPenalties(); 
 
             } catch (error) {
-                showToast(error.message || "Ödeme sırasında hata oluştu.", "error");
+                showToast(error.message || "Ödeme başarısız.", "error");
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;

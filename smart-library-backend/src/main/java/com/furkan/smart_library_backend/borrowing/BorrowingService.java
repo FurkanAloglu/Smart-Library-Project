@@ -20,9 +20,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BorrowingService {
 
     private final BorrowingRepository borrowingRepository;
@@ -30,8 +30,6 @@ public class BorrowingService {
     private final UserRepository userRepository;
     private final MailService mailService;
     private final PenaltyRepository penaltyRepository;
-
-
 
     public List<BorrowingResponse> getMyBorrowings(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
@@ -50,17 +48,15 @@ public class BorrowingService {
                 .toList();
     }
 
+    // ================= BORROW =================
     @Transactional
     public BorrowingResponse borrowBook(BorrowingRequest request, String userEmail) {
 
         User user = userRepository.findByEmailAndDeletedFalse(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        List<Penalty> userPenalties = penaltyRepository.findAllByUserId(user.getId());
-        if (!userPenalties.isEmpty()) {
-            throw new IllegalStateException(
-                    "Ödenmemiş cezalarınız bulunmaktadır. Lütfen önce borcunuzu ödeyin."
-            );
+        if (!penaltyRepository.findAllByUserId(user.getId()).isEmpty()) {
+            throw new IllegalStateException("Ödenmemiş cezalarınız bulunmaktadır.");
         }
 
         Book book = bookRepository.findByIdAndDeletedFalse(request.bookId())
@@ -70,50 +66,54 @@ public class BorrowingService {
             throw new IllegalStateException("Book is out of stock");
         }
 
-        boolean alreadyHas = borrowingRepository
-                .existsByUserIdAndBookIdAndReturnDateIsNull(user.getId(), book.getId());
+        boolean alreadyBorrowed =
+                borrowingRepository.existsByUserIdAndBookIdAndReturnDateIsNull(
+                        user.getId(), book.getId()
+                );
 
-        if (alreadyHas) {
-            throw new IllegalStateException("You already have this book borrowed");
+        if (alreadyBorrowed) {
+            throw new IllegalStateException("Bu kitabı zaten ödünç almışsınız");
         }
 
         Borrowing borrowing = Borrowing.builder()
                 .user(user)
                 .book(book)
                 .borrowDate(LocalDateTime.now())
-                .dueDate(LocalDateTime.now().plusMinutes(1)) // test amaçlı
+                .dueDate(LocalDateTime.now().plusDays(14)) // PROD
+                // .dueDate(LocalDateTime.now().plusMinutes(1)) // TEST
                 .build();
 
         Borrowing saved = borrowingRepository.save(borrowing);
         return BorrowingResponse.fromEntity(saved);
     }
 
-
+    // ================= RETURN =================
     @Transactional
     public void returnBook(UUID borrowingId, String userEmail) {
+
         Borrowing borrowing = borrowingRepository.findById(borrowingId)
-                .orElseThrow(() -> new EntityNotFoundException("Borrowing record not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Borrowing not found"));
 
         if (!borrowing.getUser().getEmail().equals(userEmail)) {
-            throw new IllegalStateException("Bu işlem için yetkiniz yok. Sadece kendi kitabınızı iade edebilirsiniz.");
+            throw new IllegalStateException("Sadece kendi kitabını iade edebilirsin");
         }
 
         if (borrowing.getReturnDate() != null) {
-            throw new IllegalStateException("Book already returned");
+            throw new IllegalStateException("Kitap zaten iade edilmiş");
         }
 
         borrowing.setReturnDate(LocalDateTime.now());
-        log.info("Kitap İadesi: BorrowingId={} | DueDate={} | ReturnDate={} | Gecikme Var mı?={}",
+
+        borrowingRepository.save(borrowing);
+        borrowingRepository.flush();
+
+        log.info(
+                "İADE | BorrowingId={} | Due={} | Return={} | Late={}",
                 borrowing.getId(),
                 borrowing.getDueDate(),
                 borrowing.getReturnDate(),
                 borrowing.getReturnDate().isAfter(borrowing.getDueDate())
         );
-
-        borrowingRepository.save(borrowing);
-
-        borrowingRepository.flush();
-
 
         if (borrowing.getReturnDate().isAfter(borrowing.getDueDate())) {
             mailService.sendLateReturnNotification(
