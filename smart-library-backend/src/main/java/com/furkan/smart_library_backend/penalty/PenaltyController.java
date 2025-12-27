@@ -4,6 +4,8 @@ import com.furkan.smart_library_backend.penalty.dto.PenaltyResponse;
 import com.furkan.smart_library_backend.user.User;
 import com.furkan.smart_library_backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/penalties")
 @RequiredArgsConstructor
+@Slf4j
 public class PenaltyController {
 
     private final PenaltyService penaltyService;
@@ -32,8 +35,15 @@ public class PenaltyController {
     @GetMapping("/all")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<PenaltyResponse>> getAllPenalties() {
-        return ResponseEntity.ok(penaltyService.getAllPenalties());
+        try {
+            return ResponseEntity.ok(penaltyService.getAllPenalties());
+        } catch (Exception e) {
+            log.error("Error while fetching all penalties", e);
+            return ResponseEntity.status(500).build();
+        }
     }
+
+
 
     @PostMapping("/{id}/pay")
     // @PreAuthorize("hasRole('USER')")
