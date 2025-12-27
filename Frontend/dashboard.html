@@ -554,7 +554,6 @@ async function findOrCreateItem(type, name) {
                     if (success) { toggleModal('addBookModal', false); refreshData(); }
                 } catch (error) { showToast(error.message, "error"); }
             };
-        }
 
         function setupExtraModals() {
             // ... (Senin kodundaki Yazar/Kategori ekleme modal logicleri buraya) ...
