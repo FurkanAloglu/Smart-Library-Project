@@ -24,8 +24,14 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse createCategory(CategoryRequest request) {
+        String cleanName = request.name().trim();
+
+        if (categoryRepository.existsByNameIgnoreCaseAndDeletedFalse(cleanName)) {
+            throw new IllegalArgumentException("Bu kategori zaten mevcut!");
+        }
+
         Category category = Category.builder()
-                .name(request.name())
+                .name(cleanName)
                 .deleted(false)
                 .build();
         return CategoryResponse.fromEntity(categoryRepository.save(category));
@@ -37,7 +43,14 @@ public class CategoryService {
                 .filter(c -> !c.isDeleted())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found"));
 
-        category.setName(request.name());
+        String newName = request.name().trim();
+
+        if (!category.getName().equalsIgnoreCase(newName) &&
+                categoryRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
+            throw new IllegalArgumentException("Bu kategori adı zaten sistemde mevcut!");
+        }
+
+        category.setName(newName);
         return CategoryResponse.fromEntity(categoryRepository.save(category));
     }
 

@@ -37,15 +37,15 @@ CREATE TABLE borrowings (
                             id UUID PRIMARY KEY,
                             user_id UUID NOT NULL REFERENCES users(id),
                             book_id UUID NOT NULL REFERENCES books(id),
-                            borrow_date DATE NOT NULL,
-                            due_date DATE NOT NULL,
-                            return_date DATE,
+                            borrow_date TIMESTAMP  NOT NULL,
+                            due_date TIMESTAMP  NOT NULL,
+                            return_date TIMESTAMP ,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE penalties (
                            id UUID PRIMARY KEY,
-                           borrowing_id UUID NOT NULL UNIQUE REFERENCES borrowings(id),
+                           borrowing_id UUID NOT NULL REFERENCES borrowings(id),
                            amount DECIMAL(10, 2) NOT NULL,
                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

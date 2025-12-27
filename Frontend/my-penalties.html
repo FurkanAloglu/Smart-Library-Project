@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKYS | Cezalarım</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <div id="navbar-placeholder"></div>
+
+    <main class="container mx-auto px-6 py-8">
+        <h1 class="text-3xl font-black text-slate-800 mb-6 flex items-center gap-3">
+            <i class="fa-solid fa-file-invoice-dollar text-rose-600"></i> Ceza Dökümü
+        </h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p class="text-slate-500 text-sm font-bold">Toplam Ödenmemiş</p>
+                <h3 class="text-3xl font-black text-rose-600 mt-2" id="totalDebt">0.00 TL</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-xs uppercase">
+                    <tr>
+                        <th class="px-6 py-4">Kitap</th>
+                        <th class="px-6 py-4">Gecikme</th>
+                        <th class="px-6 py-4">Tutar</th>
+                        <th class="px-6 py-4">Durum</th>
+                        <th class="px-6 py-4 text-right">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody id="penaltyTableBody" class="divide-y divide-slate-100 text-sm">
+                    </tbody>
+            </table>
+            <div id="emptyState" class="hidden p-8 text-center text-slate-400">
+                <i class="fa-regular fa-face-smile text-4xl mb-3"></i>
+                <p>Harika! Hiç cezanız yok.</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="paymentModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-all" id="paymentPanel">
+                <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800"><i class="fa-solid fa-lock text-emerald-600 mr-2"></i>Güvenli Ödeme</h3>
+                    <button onclick="closePaymentModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex justify-between items-center">
+                        <span class="text-blue-800 font-bold text-sm">Ödenecek Tutar</span>
+                        <span class="text-blue-600 font-black text-xl" id="modalAmount">0.00 TL</span>
+                    </div>
+
+                    <form id="paymentForm" class="space-y-3">
+                        <input type="hidden" id="modalPenaltyId">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Kart Üzerindeki İsim</label>
+                            <input type="text" placeholder="AD SOYAD" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 uppercase" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">Kart Numarası</label>
+                            <div class="relative">
+                                <input type="text" placeholder="0000 0000 0000 0000" maxlength="19" class="w-full px-4 py-2 pl-10 rounded-lg border border-slate-200 outline-none focus:border-blue-500 font-mono" required>
+                                <i class="fa-brands fa-cc-visa absolute left-3 top-2.5 text-slate-400 text-lg"></i>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1">SKT</label>
+                                <input type="text" placeholder="AA/YY" maxlength="5" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 mb-1">CVV</label>
+                                <input type="text" placeholder="123" maxlength="3" class="w-full px-4 py-2 rounded-lg border border-slate-200 outline-none focus:border-blue-500 text-center" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl mt-4 hover:bg-black transition shadow-lg flex justify-center items-center gap-2">
+                            <span>Ödemeyi Onayla</span> <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="bg-slate-50 px-6 py-3 text-center">
+                    <p class="text-[10px] text-slate-400"><i class="fa-solid fa-shield-halved"></i> 256-bit SSL ile korunmaktadır (Simülasyon).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+    <script type="module">
+    import { loadNavbar, showToast } from './assets/js/layout.js';
+    import { request } from './assets/js/api.js';
+
+    async function init() {
+        await loadNavbar();
+        await loadPenalties();
+    }
+
+    async function loadPenalties() {
+        try {
+            // Backend endpoint
+            const penalties = await request('/penalties/my');
+
+            const tbody = document.getElementById('penaltyTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const totalDebtEl = document.getElementById('totalDebt');
+
+            tbody.innerHTML = '';
+            emptyState.classList.add('hidden');
+
+            let totalDebt = 0;
+
+            if (!penalties || penalties.length === 0) {
+                emptyState.classList.remove('hidden');
+                totalDebtEl.textContent = '0.00 TL';
+                return;
+            }
+
+            // Ödenmemişler önce
+            penalties.sort((a, b) => Number(a.isPaid) - Number(b.isPaid));
+
+            penalties.forEach(p => {
+                // Toplam borç
+                if (!p.isPaid) totalDebt += p.amount;
+
+                // -------- GECİKME GÜNÜ HESAPLAMA --------
+                let delayText = '?';
+
+                if (p.dueDate && p.returnDate) {
+                    const due = new Date(p.dueDate);
+                    const returned = new Date(p.returnDate);
+
+                    if (returned > due) {
+                        const diffTime = returned - due;
+                        delayText = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    } else {
+                        delayText = 0;
+                    }
+                }
+                // --------------------------------------
+
+                const rowClass = p.isPaid
+                    ? 'bg-slate-50 text-slate-400 grayscale opacity-75'
+                    : 'hover:bg-slate-50 transition text-slate-800';
+
+                const statusBadge = p.isPaid
+                    ? `<span class="px-3 py-1 bg-slate-200 text-slate-500 rounded-full text-xs font-bold border border-slate-300">
+                        ÖDENDİ
+                       </span>`
+                    : `<span class="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-xs font-bold border border-rose-200 animate-pulse">
+                        ÖDENMEDİ
+                       </span>`;
+
+                const actionButton = p.isPaid
+                    ? `<span class="text-slate-400 text-xs italic">
+                        <i class="fa-solid fa-check-double mr-1"></i>Tamamlandı
+                       </span>`
+                    : `<button onclick="openPaymentModal('${p.id}', ${p.amount})"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold
+                               hover:bg-blue-700 shadow-sm transition
+                               hover:shadow-md hover:-translate-y-0.5">
+                        Öde
+                       </button>`;
+
+                const row = `
+                    <tr class="${rowClass} border-b border-slate-100 last:border-0">
+                        <td class="px-6 py-4 font-medium">
+                            ${p.bookTitle || 'Bilinmeyen Kitap'}
+                        </td>
+
+                        <td class="px-6 py-4 text-sm font-bold text-slate-500">
+                            ${delayText} Gün
+                        </td>
+
+                        <td class="px-6 py-4 font-bold font-mono">
+                            ${p.amount} ₺
+                        </td>
+
+                        <td class="px-6 py-4">
+                            ${statusBadge}
+                        </td>
+
+                        <td class="px-6 py-4 text-right">
+                            ${actionButton}
+                        </td>
+                    </tr>
+                `;
+
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            totalDebtEl.textContent = totalDebt.toFixed(2) + ' TL';
+
+        } catch (error) {
+            console.error(error);
+            showToast('Cezalar yüklenemedi: ' + error.message, 'error');
+        }
+    }
+
+    // -------- GLOBAL MODAL FONKSİYONLARI --------
+    window.openPaymentModal = (id, amount) => {
+        document.getElementById('modalPenaltyId').value = id;
+        document.getElementById('modalAmount').textContent = amount.toFixed(2) + ' TL';
+        document.getElementById('paymentModal').classList.remove('hidden');
+    };
+
+    window.closePaymentModal = () => {
+        document.getElementById('paymentModal').classList.add('hidden');
+    };
+    // -------------------------------------------
+
+    // -------- ÖDEME FORMU --------
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const id = document.getElementById('modalPenaltyId').value;
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> İşleniyor...';
+        btn.disabled = true;
+
+        try {
+            // Fake delay (simülasyon)
+            await new Promise(r => setTimeout(r, 1000));
+
+            await request(`/penalties/${id}/pay`, 'POST');
+
+            showToast('Ödeme alındı, teşekkürler!', 'success');
+            closePaymentModal();
+            await loadPenalties();
+
+        } catch (error) {
+            showToast(error.message || 'Ödeme başarısız.', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    });
+    // ----------------------------
+
+    init();
+</script>
+
+</body>
+</html>

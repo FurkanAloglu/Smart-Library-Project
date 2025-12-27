@@ -31,6 +31,14 @@ public class Penalty {
     @Column(nullable = false)
     private BigDecimal amount;
 
+    // EKLENDİ: Ödeme durumu takibi
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isPaid = false;
+
+    @Column(name = "payment_date")
+    private LocalDateTime paymentDate;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

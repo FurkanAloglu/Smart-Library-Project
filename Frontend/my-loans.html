@@ -4,12 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ödünç Aldıklarım - SmartLibrary</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
 
     <main class="container mx-auto px-6 py-8">
+        <div id="penaltyBox" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm flex justify-between items-center">
+    <div class="flex items-center gap-3">
+        <div class="bg-red-100 p-2 rounded-full text-red-600">
+            <i class="fa-solid fa-gavel"></i>
+        </div>
+        <div>
+            <p class="font-bold text-red-700">Ödenmemiş Cezalarınız Var!</p>
+            <p class="text-sm text-red-600">Kütüphane yönetimi ile görüşünüz.</p>
+        </div>
+    </div>
+    <div class="text-2xl font-bold text-red-700" id="totalPenaltyAmount">0.00 ₺</div>
+</div>
         <h2 class="text-3xl font-bold text-gray-900 mb-6">Ödünç Aldığım Kitaplar</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="loansContainer">
@@ -27,11 +40,22 @@
         import { loadNavbar } from './assets/js/layout.js';
         import { getMyBorrowings, returnBook } from './assets/js/borrowing.js';
 
-        async function init() {
-            await loadNavbar();
-            renderLoans();
-        }
+        import { getMyBorrowings, returnBook, getMyPenalties } from './assets/js/borrowing.js'; // getMyPenalties eklemeyi unutma
 
+async function init() {
+    await loadNavbar();
+    
+    // 1. Ödünçleri Yükle
+    renderLoans();
+
+    // 2. Cezaları Kontrol Et (YENİ)
+    const penalties = await getMyPenalties();
+    if (penalties.length > 0) {
+        const total = penalties.reduce((sum, p) => sum + p.amount, 0);
+        document.getElementById('penaltyBox').classList.remove('hidden');
+        document.getElementById('totalPenaltyAmount').innerText = `${total.toFixed(2)} ₺`;
+    }
+}
         async function renderLoans() {
             const container = document.getElementById('loansContainer');
             const loading = document.getElementById('loading');
@@ -67,8 +91,8 @@
                         
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h3 class="font-bold text-lg text-gray-900">${loan.bookName || 'Kitap ID: ' + loan.bookId.substring(0,5)}...</h3>
-                                <p class="text-xs text-gray-500">İşlem ID: #${loan.id.substring(0,8)}</p>
+                                <h3 class="font-bold text-lg text-gray-900">${loan.bookTitle}</h3>
+                                <p class="text-xs text-gray-500">ISBN: ${loan.bookIsbn}</p>
                             </div>
                             <span class="${isReturned ? 'bg-gray-100 text-gray-600' : (isLate ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')} text-xs font-bold px-2 py-1 rounded">
                                 ${isReturned ? 'İade Edildi' : (isLate ? 'GECİKTİ' : 'Okunuyor')}

@@ -8,7 +8,13 @@ import com.furkan.smart_library_backend.category.Category;
 import com.furkan.smart_library_backend.category.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
@@ -19,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookService {
 
     private final BookRepository bookRepository;
@@ -26,11 +33,13 @@ public class BookService {
     private final CategoryRepository categoryRepository;
 
     public List<BookResponse> getAllBooks() {
+
         return bookRepository.findAllByDeletedFalse().stream()
                 .map(BookResponse::fromEntity)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public BookResponse getBookById(UUID id) {
         Book book = bookRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Book not found with id: " + id));
@@ -39,25 +48,37 @@ public class BookService {
 
     @Transactional
     public BookResponse createBook(BookRequest request) {
+        // ISBN Kontrolü
         if (bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
             throw new IllegalArgumentException("Book with this ISBN already exists");
         }
 
+        // İlişkileri Getir (Senkron çalışır, olması gereken budur)
         Set<Author> authors = fetchAuthors(request.authorIds());
         Set<Category> categories = fetchCategories(request.categoryIds());
 
-        Book book = Book.builder()
-                .title(request.title())
-                .description(request.description())
-                .isbn(request.isbn())
-                .stock(request.stock())
-                .imageUrl(request.imageUrl())
-                .authors(authors)
-                .categories(categories)
-                .deleted(false)
-                .build();
+        try {
+            // Builder ile nesne oluşturulurken .id() ATAMASI YAPMA!
+            Book book = Book.builder()
+                    // .id(UUID.randomUUID())  <-- BU SATIRI SİL! JPA KENDİSİ VERECEK.
+                    .title(request.title())
+                    .description(request.description())
+                    .isbn(request.isbn())
+                    .stock(request.stock())
+                    .imageUrl(request.imageUrl())
+                    .authors(authors)
+                    .categories(categories)
+                    .deleted(false)
+                    .build();
 
-        return BookResponse.fromEntity(bookRepository.save(book));
+            // save metodu Transaction bitince commit eder.
+            return BookResponse.fromEntity(bookRepository.save(book));
+
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Veritabanı işlemi sırasında teknik bir hata: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("Beklenmeyen hata: " + e.getMessage(), e);
+        }
     }
 
     @Transactional

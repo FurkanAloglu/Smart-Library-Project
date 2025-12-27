@@ -4,22 +4,24 @@ CREATE OR REPLACE FUNCTION calculate_penalty(
 )
 RETURNS VOID AS $$
 DECLARE
-v_due_date DATE;
-    v_returned_date DATE;
+v_due_date TIMESTAMP; -- Date yerine Timestamp daha güvenli (Veri kaybı olmasın)
+    v_return_date TIMESTAMP;
     v_days_late INT;
 BEGIN
-SELECT due_date, returned_at
-INTO v_due_date, v_returned_date
+    -- DÜZELTME: 'return_at' YERİNE 'return_date' YAZILDI
+SELECT due_date, return_date
+INTO v_due_date, v_return_date
 FROM borrowings
 WHERE id = p_borrowing_id;
 
-IF v_returned_date IS NULL OR v_returned_date <= v_due_date THEN
+IF v_return_date IS NULL OR v_return_date <= v_due_date THEN
         RETURN;
 END IF;
 
-    v_days_late := v_returned_date - v_due_date;
+    -- Gün farkını al (Postgres timestamp farkını interval verir, bunu güne çeviriyoruz)
+    v_days_late := EXTRACT(DAY FROM (v_return_date - v_due_date));
 
-INSERT INTO penalties (id, borrowing_id, amount)
-VALUES (gen_random_uuid(), p_borrowing_id, v_days_late * p_daily_fee);
+INSERT INTO penalties (id, borrowing_id, amount, created_at)
+VALUES (gen_random_uuid(), p_borrowing_id, v_days_late * p_daily_fee, CURRENT_TIMESTAMP);
 END;
 $$ LANGUAGE plpgsql;

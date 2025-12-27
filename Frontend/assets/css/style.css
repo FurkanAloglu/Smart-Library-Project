@@ -1,3 +1,79 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fontu da biraz modernleştirdim */
+  font-size: 14px; /* Genel fontu küçülttük */
+  margin: 0;
+  padding: 0;
+}
+
+.main-layout {
+  display: grid;
+  /* Sidebar'ı 250px'den 200px'e çektik, yer açıldı */
+  grid-template-columns: 200px 1fr; 
+  gap: 15px; /* Boşlukları 20px'den 15px'e indirdik */
+  padding: 15px;
+  height: 100vh;
+  box-sizing: border-box; /* Padding taşmalarını önler */
+}
+
+.sidebar {
+  background-color: #f8f9fa;
+  padding: 10px; /* İç boşluğu kıstık */
+  border-right: 1px solid #ddd; /* Hafif bir sınır çizgisi */
+  height: 100%; /* Tam boy */
+  font-size: 0.9rem; /* Sidebar yazıları bir tık küçük olsun */
+}
+
+.content-grid {
+  display: grid;
+  /* KRİTİK NOKTA: minmax 200px idi, 140px yaptık. Artık yan yana daha çok kitap sığacak */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); 
+  gap: 15px;
+  align-content: start; /* İçerik azsa yukarı yasla, yayma */
+}
+
+/* Kartın kendisi */
+.book-card {
+  border: 1px solid #eee;
+  padding: 8px; /* Kart içi boşluğu azalttık */
+  border-radius: 6px;
+  transition: transform 0.2s; /* Üzerine gelince minik efekt */
+  background: white;
+}
+
+.book-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.book-card img {
+  width: 100%;
+  /* Resmi 250px'den 180px'e çektik. Oran korunarak cover edilecek */
+  height: 180px;     
+  object-fit: cover; 
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Kitap isimleri dev gibi olmasın */
+.book-card h3, .book-card h4 {
+  font-size: 1rem;
+  margin: 0 0 5px 0;
+  white-space: nowrap; /* Sığmayan yazı alt satıra geçmesin */
+  overflow: hidden;    /* Taşanı gizle */
+  text-overflow: ellipsis; /* ... koy */
+}
+
+.book-card p {
+  font-size: 0.8rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Yandan açılan panel (Drawer) */
+.drawer-image {
+  width: 100%;
+  /* Paneldeki resmi de kıstık, ekranı kaplamasın */
+  max-height: 200px; 
+  object-fit: contain;
+  background-color: #000; /* Resim sığmazsa arkası siyah olsun şık durur */
 }

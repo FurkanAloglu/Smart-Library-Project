@@ -5,28 +5,31 @@ import com.furkan.smart_library_backend.book.BookRepository;
 import com.furkan.smart_library_backend.borrowing.dto.BorrowingRequest;
 import com.furkan.smart_library_backend.borrowing.dto.BorrowingResponse;
 import com.furkan.smart_library_backend.mail.MailService;
+import com.furkan.smart_library_backend.penalty.Penalty;
+import com.furkan.smart_library_backend.penalty.PenaltyRepository;
 import com.furkan.smart_library_backend.user.User;
 import com.furkan.smart_library_backend.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BorrowingService {
 
     private final BorrowingRepository borrowingRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final MailService mailService;
-
-    private static final BigDecimal DAILY_FEE = BigDecimal.valueOf(5.0);
+    private final PenaltyRepository penaltyRepository;
 
     public List<BorrowingResponse> getMyBorrowings(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
@@ -45,10 +48,16 @@ public class BorrowingService {
                 .toList();
     }
 
+    // ================= BORROW =================
     @Transactional
     public BorrowingResponse borrowBook(BorrowingRequest request, String userEmail) {
+
         User user = userRepository.findByEmailAndDeletedFalse(userEmail)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+        if (!penaltyRepository.findAllByUserId(user.getId()).isEmpty()) {
+            throw new IllegalStateException("Ödenmemiş cezalarınız bulunmaktadır.");
+        }
 
         Book book = bookRepository.findByIdAndDeletedFalse(request.bookId())
                 .orElseThrow(() -> new EntityNotFoundException("Book not found"));
@@ -57,37 +66,54 @@ public class BorrowingService {
             throw new IllegalStateException("Book is out of stock");
         }
 
-        boolean alreadyHas = borrowingRepository.existsByUserIdAndBookIdAndReturnDateIsNull(user.getId(), book.getId());
-        if (alreadyHas) {
-            throw new IllegalStateException("You already have this book borrowed");
+        boolean alreadyBorrowed =
+                borrowingRepository.existsByUserIdAndBookIdAndReturnDateIsNull(
+                        user.getId(), book.getId()
+                );
+
+        if (alreadyBorrowed) {
+            throw new IllegalStateException("Bu kitabı zaten ödünç almışsınız");
         }
 
         Borrowing borrowing = Borrowing.builder()
                 .user(user)
                 .book(book)
-                .borrowDate(LocalDate.now())
-                .dueDate(LocalDate.now().plusDays(15))
+                .borrowDate(LocalDateTime.now())
+                .dueDate(LocalDateTime.now().plusDays(14)) // PROD
+                // .dueDate(LocalDateTime.now().plusMinutes(1)) // TEST
                 .build();
 
         Borrowing saved = borrowingRepository.save(borrowing);
         return BorrowingResponse.fromEntity(saved);
     }
 
+    // ================= RETURN =================
     @Transactional
     public void returnBook(UUID borrowingId, String userEmail) {
-        Borrowing borrowing = borrowingRepository.findById(borrowingId)
-                .orElseThrow(() -> new EntityNotFoundException("Borrowing record not found"));
 
-        if (borrowing.getReturnDate() != null) {
-            throw new IllegalStateException("Book already returned");
+        Borrowing borrowing = borrowingRepository.findById(borrowingId)
+                .orElseThrow(() -> new EntityNotFoundException("Borrowing not found"));
+
+        if (!borrowing.getUser().getEmail().equals(userEmail)) {
+            throw new IllegalStateException("Sadece kendi kitabını iade edebilirsin");
         }
 
-        borrowing.setReturnDate(LocalDate.now());
-        borrowingRepository.save(borrowing);
+        if (borrowing.getReturnDate() != null) {
+            throw new IllegalStateException("Kitap zaten iade edilmiş");
+        }
 
+        borrowing.setReturnDate(LocalDateTime.now());
+
+        borrowingRepository.save(borrowing);
         borrowingRepository.flush();
 
-        borrowingRepository.callCalculatePenalty(borrowing.getId(), DAILY_FEE);
+        log.info(
+                "İADE | BorrowingId={} | Due={} | Return={} | Late={}",
+                borrowing.getId(),
+                borrowing.getDueDate(),
+                borrowing.getReturnDate(),
+                borrowing.getReturnDate().isAfter(borrowing.getDueDate())
+        );
 
         if (borrowing.getReturnDate().isAfter(borrowing.getDueDate())) {
             mailService.sendLateReturnNotification(

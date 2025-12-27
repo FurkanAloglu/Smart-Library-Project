@@ -5,6 +5,8 @@ import com.furkan.smart_library_backend.user.dto.UserResponse;
 import com.furkan.smart_library_backend.user.dto.UserUpdateRequest;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +42,7 @@ public class UserService {
 
         User user = User.builder()
                 .email(request.email())
-                .password(passwordEncoder.encode(request.password())) // Şifre hashleniyor
+                .password(passwordEncoder.encode(request.password()))
                 .fullName(request.fullName())
                 .role(request.role())
                 .deleted(false)
@@ -52,21 +54,40 @@ public class UserService {
 
     @Transactional
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
-        User user = userRepository.findByIdAndDeletedFalse(id)
+        // 1. Kullanıcıyı bul
+        User userToUpdate = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        if (!user.getEmail().equals(request.email()) &&
+        // 2. İşlemi yapan kim? (Security Context'ten al)
+        String currentPrincipalName = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmailAndDeletedFalse(currentPrincipalName)
+                .orElseThrow(() -> new EntityNotFoundException("Authenticated user not found"));
+
+        // 3. GÜVENLİK KONTROLÜ: Başkasını güncellemeye çalışıyor mu?
+        // Eğer işlem yapan ADMIN değilse VE güncellemeye çalıştığı ID kendi ID'si değilse -> HATA
+        if (currentUser.getRole() != Role.ADMIN && !currentUser.getId().equals(id)) {
+            throw new AccessDeniedException("Başkalarının profilini güncelleyemezsiniz.");
+        }
+
+        // Email çakışma kontrolü
+        if (!userToUpdate.getEmail().equals(request.email()) &&
                 userRepository.existsByEmailAndDeletedFalse(request.email())) {
             throw new IllegalArgumentException("Email already in use");
         }
 
-        user.setEmail(request.email());
-        user.setFullName(request.fullName());
-        if (request.role() != null) {
-            user.setRole(request.role());
-        }
+        // Bilgileri güncelle
+        userToUpdate.setEmail(request.email());
+        userToUpdate.setFullName(request.fullName());
 
-        User updatedUser = userRepository.save(user);
+        // 4. ROL GÜNCELLEME GÜVENLİĞİ:
+        // Sadece ADMIN rol değiştirebilir. Normal kullanıcı kendi rolünü değiştiremez.
+        if (request.role() != null && currentUser.getRole() == Role.ADMIN) {
+            userToUpdate.setRole(request.role());
+        }
+        // Eğer kullanıcı ADMIN değilse ve role göndermişse, bu istek sessizce yoksayılır (veya hata fırlatılabilir).
+        // Şu anki haliyle role değişikliği uygulanmaz.
+
+        User updatedUser = userRepository.save(userToUpdate);
         return UserResponse.fromEntity(updatedUser);
     }
 

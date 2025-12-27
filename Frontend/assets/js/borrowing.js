@@ -3,7 +3,7 @@ import { showToast } from './layout.js';
 
 // Kitap Ödünç Al
 export async function borrowBook(bookId) {
-    if (!confirm("Bu kitabı ödünç almak istiyor musun?")) return false;
+    if (!confirm("Bu kitabı ödünç almak istiyor musunuz?")) return false;
 
     try {
         // Backend DTO: BorrowingRequest { bookId: UUID }
@@ -29,12 +29,13 @@ export async function getMyBorrowings() {
 
 // Kitap İade Et
 export async function returnBook(borrowingId) {
-    if (!confirm("Kitabı iade ediyor musun?")) return false;
+    if (!confirm("Kitabı iade ediyor musunuz?")) return false;
     try {
         await request(`/borrowings/${borrowingId}/return`, 'PUT');
         showToast("Kitap iade edildi. Teşekkürler!", "success");
         return true;
     } catch (error) {
+        console.error("İade Hatası Detayı:", error);
         showToast("İade başarısız!", "error");
         return false;
     }

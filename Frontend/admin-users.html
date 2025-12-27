@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKYS | Kullanıcı Yönetimi </title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <main class="container mx-auto px-6 py-8">
+        
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-2xl font-black text-slate-800 tracking-tight">Kullanıcı Yönetimi</h2>
+                <p class="text-sm text-slate-500 font-medium">Sisteme kayıtlı tüm üyeleri görüntüle ve yönet</p>
+            </div>
+            <div class="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm text-sm">
+                <span class="text-slate-400 font-bold mr-2">TOPLAM ÜYE:</span>
+                <span id="totalUserCount" class="font-black text-blue-600 text-lg">0</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                            <th class="p-5">Kullanıcı</th>
+                            <th class="p-5">E-posta</th>
+                            <th class="p-5">Rol</th>
+                            <th class="p-5">Kayıt Tarihi</th>
+                            <th class="p-5 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="text-sm text-slate-600 divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="5" class="p-10 text-center text-slate-400">
+                                <i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Veriler yükleniyor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
+
+    <script type="module">
+        import { loadNavbar, showToast } from './assets/js/layout.js';
+        import { request } from './assets/js/api.js';
+
+        let currentUser = null;
+
+        async function init() {
+            currentUser = await loadNavbar();
+            
+            // Güvenlik: Sadece ADMIN girebilir
+            if (!currentUser || currentUser.role !== 'ADMIN') {
+                alert("Bu sayfaya erişim yetkiniz yok!");
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            loadUsers();
+        }
+
+        async function loadUsers() {
+            try {
+                // Backend Endpoint: UserController -> getAllUsers
+                const users = await request('/users'); 
+                renderUsers(users || []);
+            } catch (error) {
+                console.error(error);
+                showToast("Kullanıcı listesi çekilemedi!", "error");
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            document.getElementById('totalUserCount').innerText = users.length;
+
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">Sistemde kayıtlı kullanıcı bulunamadı.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => {
+                const isAdmin = user.role === 'ADMIN';
+                const createdDate = new Date(user.createdAt).toLocaleDateString('tr-TR');
+                
+                // Avatar için baş harfler
+                const initials = user.fullName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+                const avatarColor = isAdmin ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600';
+
+                return `
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="${avatarColor} w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shadow-sm">
+                                ${initials}
+                            </div>
+                            <span class="font-bold text-slate-700">${user.fullName}</span>
+                        </div>
+                    </td>
+                    <td class="p-4 font-mono text-xs">${user.email}</td>
+                    <td class="p-4">
+                        ${isAdmin 
+                            ? `<span class="bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider">YÖNETİCİ</span>`
+                            : `<span class="bg-slate-100 text-slate-600 border border-slate-200 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">ÜYE</span>`
+                        }
+                    </td>
+                    <td class="p-4 text-slate-400">${createdDate}</td>
+                    <td class="p-4 text-right">
+                        ${user.id === currentUser.id 
+                            ? `<span class="text-xs text-slate-400 italic pr-2">Siz</span>` 
+                            : `<button onclick="window.deleteUser('${user.id}')" class="text-slate-400 hover:text-rose-600 transition p-2 bg-transparent hover:bg-rose-50 rounded-lg" title="Kullanıcıyı Sil">
+                                <i class="fa-solid fa-trash-can"></i>
+                               </button>`
+                        }
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        // Global fonksiyon (HTML onclick için)
+        window.deleteUser = async (id) => {
+            if(!confirm("Bu kullanıcıyı ve tüm verilerini silmek istediğinize emin misiniz? Bu işlem geri alınamaz!")) return;
+
+            try {
+                await request(`/users/${id}`, 'DELETE');
+                showToast("Kullanıcı başarıyla silindi.", "success");
+                loadUsers(); // Listeyi yenile
+            } catch (error) {
+                showToast("Silme işlemi başarısız: " + error.message, "error");
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>

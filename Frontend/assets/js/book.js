@@ -13,7 +13,7 @@ export async function getAllBooks() {
 
 // 2. Kitap Sil
 export async function deleteBook(id) {
-    if (!confirm("Bu kitabı silmek istediğine emin misin Reis?")) return false;
+    if (!confirm("Bu kitabı silmek istediğine emin misiniz?")) return false;
     try {
         await request(`/books/${id}`, 'DELETE');
         return true;
@@ -45,4 +45,26 @@ export async function getCategories() {
     try {
         return await request('/categories') || [];
     } catch (e) { return []; }
+}
+
+// 5. Tek bir kitabın detayını getir (Edit modali için gerekli)
+export async function getBookById(id) {
+    try {
+        return await request(`/books/${id}`);
+    } catch (error) {
+        console.error("Kitap detayı alınamadı:", error);
+        return null;
+    }
+}
+
+// 6. Kitap Güncelle
+// Backend: PUT /api/books/{id}
+// DİKKAT: Backend BookRequest DTO'su bekler (title, stock, authorIds vb.)
+export async function updateBook(id, bookData) {
+    try {
+        const response = await request(`/books/${id}`, 'PUT', bookData);
+        return response; // Güncellenmiş nesneyi döner
+    } catch (error) {
+        throw error; // Hatayı dashboard.html'de yakalayacağız
+    }
 }

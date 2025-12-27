@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cezalar | AKYS</title>
+    <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <main class="container mx-auto px-6 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-black text-slate-800">Ceza Dökümü</h2>
+            <div class="text-right">
+                <span class="text-xs text-slate-500 font-bold uppercase block">Toplam Tahsilat (Teorik)</span>
+                <span id="totalPenaltyAmount" class="text-xl font-black text-rose-600">0.00 ₺</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-bold">
+                        <th class="p-4">Kullanıcı</th>
+                        <th class="p-4">Kitap</th>
+                        <th class="p-4">Teslim / İade</th>
+                        <th class="p-4 text-right">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody id="penaltyTableBody" class="text-sm text-slate-600 divide-y divide-slate-100">
+                    <tr><td colspan="4" class="p-8 text-center">Yükleniyor...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script type="module">
+        import { loadNavbar } from './assets/js/layout.js';
+        import { request } from './assets/js/api.js';
+
+        async function init() {
+            const user = await loadNavbar();
+            if (user?.role !== 'ADMIN') return window.location.href = 'index.html';
+
+            try {
+                const penalties = await request('/penalties/all');
+                renderPenalties(penalties);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderPenalties(data) {
+            const tbody = document.getElementById('penaltyTableBody');
+            let total = 0;
+
+            if(!data.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400">Kayıtlı ceza yok.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(p => {
+                total += p.amount;
+                return `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-4 font-bold text-slate-800">${p.userName}</td>
+                    <td class="p-4 text-slate-600">${p.bookTitle}</td>
+                    <td class="p-4 text-xs">
+                        <div class="text-slate-400">ST: ${new Date(p.dueDate).toLocaleDateString('tr-TR')}</div>
+                        <div class="text-rose-600 font-bold">İA: ${new Date(p.returnDate).toLocaleDateString('tr-TR')}</div>
+                    </td>
+                    <td class="p-4 text-right font-mono font-bold text-rose-600">${p.amount.toFixed(2)} ₺</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('totalPenaltyAmount').innerText = total.toFixed(2) + " ₺";
+        }
+        init();
+    </script>
+</body>
+</html>

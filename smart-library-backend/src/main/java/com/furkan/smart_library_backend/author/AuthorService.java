@@ -24,8 +24,14 @@ public class AuthorService {
 
     @Transactional
     public AuthorResponse createAuthor(AuthorRequest request) {
+        String cleanName = request.name().trim();
+
+        if (authorRepository.existsByNameIgnoreCaseAndDeletedFalse(cleanName)) {
+            throw new IllegalArgumentException("Bu yazar sistemde zaten kayıtlı!");
+        }
+
         Author author = Author.builder()
-                .name(request.name())
+                .name(cleanName)
                 .deleted(false)
                 .build();
         return AuthorResponse.fromEntity(authorRepository.save(author));
@@ -37,7 +43,14 @@ public class AuthorService {
                 .filter(a -> !a.isDeleted())
                 .orElseThrow(() -> new EntityNotFoundException("Author not found"));
 
-        author.setName(request.name());
+        String newName = request.name().trim();
+
+        if (!author.getName().equalsIgnoreCase(newName) &&
+                authorRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
+            throw new IllegalArgumentException("Bu yazar adı zaten sistemde mevcut!");
+        }
+
+        author.setName(newName);
         return AuthorResponse.fromEntity(authorRepository.save(author));
     }
 
