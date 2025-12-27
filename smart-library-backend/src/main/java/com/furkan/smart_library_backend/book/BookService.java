@@ -10,18 +10,13 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,98 +28,131 @@ public class BookService {
     private final CategoryRepository categoryRepository;
 
     public List<BookResponse> getAllBooks() {
-
-        return bookRepository.findAllByDeletedFalse().stream()
-                .map(BookResponse::fromEntity)
-                .toList();
+        try {
+            return bookRepository.findAllByDeletedFalse().stream()
+                    .map(BookResponse::fromEntity)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Error in BookService.getAllBooks", e);
+            throw new RuntimeException("Failed to get books", e);
+        }
     }
 
     @Transactional(readOnly = true)
     public BookResponse getBookById(UUID id) {
-        Book book = bookRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new EntityNotFoundException("Book not found with id: " + id));
-        return BookResponse.fromEntity(book);
+        try {
+            Book book = bookRepository.findByIdAndDeletedFalse(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Book not found with id: " + id));
+            return BookResponse.fromEntity(book);
+        } catch (Exception e) {
+            log.error("Error in BookService.getBookById id={}", id, e);
+            throw new RuntimeException("Failed to get book by id", e);
+        }
     }
 
     @Transactional
     public BookResponse createBook(BookRequest request) {
-        // ISBN Kontrolü
-        if (bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
-            throw new IllegalArgumentException("Book with this ISBN already exists");
-        }
-
-        // İlişkileri Getir (Senkron çalışır, olması gereken budur)
-        Set<Author> authors = fetchAuthors(request.authorIds());
-        Set<Category> categories = fetchCategories(request.categoryIds());
-
         try {
-            // Builder ile nesne oluşturulurken .id() ATAMASI YAPMA!
-            Book book = Book.builder()
-                    // .id(UUID.randomUUID())  <-- BU SATIRI SİL! JPA KENDİSİ VERECEK.
-                    .title(request.title())
-                    .description(request.description())
-                    .isbn(request.isbn())
-                    .stock(request.stock())
-                    .imageUrl(request.imageUrl())
-                    .authors(authors)
-                    .categories(categories)
-                    .deleted(false)
-                    .build();
+            // ISBN Kontrolü
+            if (bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
+                throw new IllegalArgumentException("Book with this ISBN already exists");
+            }
 
-            // save metodu Transaction bitince commit eder.
-            return BookResponse.fromEntity(bookRepository.save(book));
+            // İlişkileri Getir (Senkron çalışır, olması gereken budur)
+            Set<Author> authors = fetchAuthors(request.authorIds());
+            Set<Category> categories = fetchCategories(request.categoryIds());
 
-        } catch (DataAccessException e) {
-            throw new RuntimeException("Veritabanı işlemi sırasında teknik bir hata: " + e.getMessage());
+            try {
+                // Builder ile nesne oluşturulurken .id() ATAMASI YAPMA!
+                Book book = Book.builder()
+                        // .id(UUID.randomUUID())  <-- BU SATIRI SİL! JPA KENDİSİ VERECEK.
+                        .title(request.title())
+                        .description(request.description())
+                        .isbn(request.isbn())
+                        .stock(request.stock())
+                        .imageUrl(request.imageUrl())
+                        .authors(authors)
+                        .categories(categories)
+                        .deleted(false)
+                        .build();
+
+                // save metodu Transaction bitince commit eder.
+                return BookResponse.fromEntity(bookRepository.save(book));
+
+            } catch (DataAccessException e) {
+                log.error("Database error in BookService.createBook request={}", request, e);
+                throw new RuntimeException("Veritabanı işlemi sırasında teknik bir hata: " + e.getMessage(), e);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Beklenmeyen hata: " + e.getMessage(), e);
+            log.error("Error in BookService.createBook request={}", request, e);
+            throw new RuntimeException("Failed to create book", e);
         }
     }
 
     @Transactional
     public BookResponse updateBook(UUID id, BookRequest request) {
-        Book book = bookRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+        try {
+            Book book = bookRepository.findByIdAndDeletedFalse(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Book not found"));
 
-        if (!book.getIsbn().equals(request.isbn()) && bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
-            throw new IllegalArgumentException("ISBN already in use");
+            if (!book.getIsbn().equals(request.isbn()) && bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
+                throw new IllegalArgumentException("ISBN already in use");
+            }
+
+            Set<Author> authors = fetchAuthors(request.authorIds());
+            Set<Category> categories = fetchCategories(request.categoryIds());
+
+            book.setTitle(request.title());
+            book.setDescription(request.description());
+            book.setIsbn(request.isbn());
+            book.setStock(request.stock());
+            book.setImageUrl(request.imageUrl());
+            book.setAuthors(authors);
+            book.setCategories(categories);
+
+            return BookResponse.fromEntity(bookRepository.save(book));
+        } catch (Exception e) {
+            log.error("Error in BookService.updateBook id={}", id, e);
+            throw new RuntimeException("Failed to update book", e);
         }
-
-        Set<Author> authors = fetchAuthors(request.authorIds());
-        Set<Category> categories = fetchCategories(request.categoryIds());
-
-        book.setTitle(request.title());
-        book.setDescription(request.description());
-        book.setIsbn(request.isbn());
-        book.setStock(request.stock());
-        book.setImageUrl(request.imageUrl());
-        book.setAuthors(authors);
-        book.setCategories(categories);
-
-        return BookResponse.fromEntity(bookRepository.save(book));
     }
 
     @Transactional
     public void deleteBook(UUID id) {
-        Book book = bookRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new EntityNotFoundException("Book not found"));
-        book.setDeleted(true);
-        bookRepository.save(book);
+        try {
+            Book book = bookRepository.findByIdAndDeletedFalse(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Book not found"));
+            book.setDeleted(true);
+            bookRepository.save(book);
+        } catch (Exception e) {
+            log.error("Error in BookService.deleteBook id={}", id, e);
+            throw new RuntimeException("Failed to delete book", e);
+        }
     }
 
     private Set<Author> fetchAuthors(Set<UUID> ids) {
-        List<Author> found = authorRepository.findAllById(ids);
-        if (found.size() != ids.size()) {
-            throw new EntityNotFoundException("Some authors were not found");
+        try {
+            List<Author> found = authorRepository.findAllById(ids);
+            if (found.size() != ids.size()) {
+                throw new EntityNotFoundException("Some authors were not found");
+            }
+            return new HashSet<>(found);
+        } catch (Exception e) {
+            log.error("Error in BookService.fetchAuthors ids={}", ids, e);
+            throw new RuntimeException("Failed to fetch authors", e);
         }
-        return new HashSet<>(found);
     }
 
     private Set<Category> fetchCategories(Set<UUID> ids) {
-        List<Category> found = categoryRepository.findAllById(ids);
-        if (found.size() != ids.size()) {
-            throw new EntityNotFoundException("Some categories were not found");
+        try {
+            List<Category> found = categoryRepository.findAllById(ids);
+            if (found.size() != ids.size()) {
+                throw new EntityNotFoundException("Some categories were not found");
+            }
+            return new HashSet<>(found);
+        } catch (Exception e) {
+            log.error("Error in BookService.fetchCategories ids={}", ids, e);
+            throw new RuntimeException("Failed to fetch categories", e);
         }
-        return new HashSet<>(found);
     }
 }
