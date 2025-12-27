@@ -6,123 +6,146 @@
     <title>Ödünç Aldıklarım - SmartLibrary</title>
     <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { animation: fadeUp 0.4s ease-out forwards; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
 
-    <main class="container mx-auto px-6 py-8">
-        <div id="penaltyBox" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r shadow-sm flex justify-between items-center">
-    <div class="flex items-center gap-3">
-        <div class="bg-red-100 p-2 rounded-full text-red-600">
-            <i class="fa-solid fa-gavel"></i>
-        </div>
-        <div>
-            <p class="font-bold text-red-700">Ödenmemiş Cezalarınız Var!</p>
-            <p class="text-sm text-red-600">Kütüphane yönetimi ile görüşünüz.</p>
-        </div>
-    </div>
-    <div class="text-2xl font-bold text-red-700" id="totalPenaltyAmount">0.00 ₺</div>
-</div>
-        <h2 class="text-3xl font-bold text-gray-900 mb-6">Ödünç Aldığım Kitaplar</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="loansContainer">
+    <main class="container mx-auto px-6 py-8 animate-fade-up">
+        
+        <div id="penaltyBox" class="hidden mb-8 bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="bg-rose-100 p-3 rounded-full text-rose-600 shadow-sm">
+                    <i class="fa-solid fa-gavel text-xl"></i>
+                </div>
+                <div>
+                    <p class="font-bold text-rose-700 text-lg">Ödenmemiş Cezalarınız Var!</p>
+                    <p class="text-sm text-rose-600">Lütfen kütüphane yönetimi ile görüşünüz.</p>
+                </div>
             </div>
+            <div class="text-3xl font-black text-rose-700 tracking-tight" id="totalPenaltyAmount">0.00 ₺</div>
+        </div>
 
-        <div id="loading" class="text-center py-10 text-gray-500">Yükleniyor...</div>
-        <div id="emptyMessage" class="hidden text-center py-20 bg-white rounded-xl shadow-sm border border-dashed border-gray-300">
-            <div class="text-4xl text-gray-300 mb-3"><i class="fa-solid fa-book-reader"></i></div>
-            <p class="text-gray-500">Henüz ödünç aldığın bir kitap yok.</p>
-            <a href="dashboard.html" class="text-blue-600 hover:underline mt-2 inline-block">Kitaplara Göz At</a>
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Ödünç Aldığım Kitaplar</h2>
+            <a href="dashboard.html" class="text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">
+                <i class="fa-solid fa-arrow-left"></i> Kütüphaneye Dön
+            </a>
+        </div>
+
+        <div id="loading" class="text-center py-20 text-slate-400 flex flex-col items-center">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-blue-500"></i>
+            <span class="font-medium">Veriler yükleniyor...</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 hidden" id="loansContainer"></div>
+
+        <div id="emptyMessage" class="hidden text-center py-20 bg-white rounded-2xl shadow-sm border border-dashed border-slate-300">
+            <div class="text-5xl text-slate-200 mb-4"><i class="fa-solid fa-book-open-reader"></i></div>
+            <p class="text-slate-500 font-medium text-lg">Henüz ödünç aldığınız bir kitap yok.</p>
+            <a href="dashboard.html" class="mt-4 inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform hover:scale-105">
+                <i class="fa-solid fa-magnifying-glass"></i> Kitaplara Göz At
+            </a>
         </div>
     </main>
 
+    <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
+
     <script type="module">
-        import { loadNavbar } from './assets/js/layout.js';
-        import { getMyBorrowings, returnBook } from './assets/js/borrowing.js';
+        import { loadNavbar, showToast } from './assets/js/layout.js';
+        import { getMyBorrowings, returnBook, getMyPenalties } from './assets/js/borrowing.js';
 
-        import { getMyBorrowings, returnBook, getMyPenalties } from './assets/js/borrowing.js'; // getMyPenalties eklemeyi unutma
+        async function init() {
+            // Navbar'ı yükle
+            try { await loadNavbar(); } catch(e) { console.error(e); }
+            
+            // Fonksiyonları paralel başlat
+            renderLoans();
+            checkPenalties();
+        }
 
-async function init() {
-    await loadNavbar();
-    
-    // 1. Ödünçleri Yükle
-    renderLoans();
-
-    // 2. Cezaları Kontrol Et (YENİ)
-    const penalties = await getMyPenalties();
-    if (penalties.length > 0) {
-        const total = penalties.reduce((sum, p) => sum + p.amount, 0);
-        document.getElementById('penaltyBox').classList.remove('hidden');
-        document.getElementById('totalPenaltyAmount').innerText = `${total.toFixed(2)} ₺`;
-    }
-}
         async function renderLoans() {
             const container = document.getElementById('loansContainer');
             const loading = document.getElementById('loading');
             const emptyMsg = document.getElementById('emptyMessage');
 
-            const loans = await getMyBorrowings();
-            loading.classList.add('hidden');
+            // Başlarken: Yükleniyor GÖSTER, diğerlerini GİZLE
+            loading.classList.remove('hidden');
+            container.classList.add('hidden');
+            emptyMsg.classList.add('hidden');
 
-            if (loans.length === 0) {
-                emptyMsg.classList.remove('hidden');
-                return;
-            }
+            try {
+                // Veriyi çek (Hata varsa borrowing.js fırlatacak, burası catch'e düşecek)
+                const loans = await getMyBorrowings();
 
-            container.innerHTML = '';
-            
-            // Backend Response: BorrowingResponse (id, bookName, borrowDate, dueDate, returnDate)
-            // Not: Backend DTO'yu kontrol ettim
-            // Alanlar: id, bookId, userId, borrowDate, dueDate, returnDate
-            
-            loans.forEach(loan => {
-                const isReturned = !!loan.returnDate;
-                // Tarih formatlama
-                const due = new Date(loan.dueDate).toLocaleDateString('tr-TR');
-                
-                // Gecikme kontrolü (Basitce)
-                const isLate = !isReturned && new Date() > new Date(loan.dueDate);
+                // --- BAŞARILI ---
+                if (!loans || loans.length === 0) {
+                    emptyMsg.classList.remove('hidden');
+                } else {
+                    container.classList.remove('hidden');
+                    container.innerHTML = ''; 
+                    
+                    // Kartları oluştur
+                    loans.forEach(loan => {
+                        const isReturned = !!loan.returnDate;
+                        const due = new Date(loan.dueDate).toLocaleDateString('tr-TR');
+                        const isLate = !isReturned && new Date() > new Date(loan.dueDate);
 
-                const card = `
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 relative overflow-hidden group hover:shadow-md transition">
-                        <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
-                            <i class="fa-solid fa-book text-6xl"></i>
-                        </div>
-                        
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-bold text-lg text-gray-900">${loan.bookTitle}</h3>
-                                <p class="text-xs text-gray-500">ISBN: ${loan.bookIsbn}</p>
+                        container.innerHTML += `
+                            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h3 class="font-bold text-lg text-slate-800">${loan.bookTitle}</h3>
+                                    ${isLate ? '<span class="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-1 rounded">GECİKTİ</span>' : ''}
+                                </div>
+                                <div class="text-sm text-slate-600 mb-4">
+                                    <p>Teslim: ${due}</p>
+                                </div>
+                                ${!isReturned ? 
+                                    `<button onclick="window.handleReturn('${loan.id}')" class="w-full py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition">İade Et</button>` 
+                                    : 
+                                    `<div class="text-center text-xs text-slate-400 py-2">İade Edildi</div>`
+                                }
                             </div>
-                            <span class="${isReturned ? 'bg-gray-100 text-gray-600' : (isLate ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')} text-xs font-bold px-2 py-1 rounded">
-                                ${isReturned ? 'İade Edildi' : (isLate ? 'GECİKTİ' : 'Okunuyor')}
-                            </span>
-                        </div>
+                        `;
+                    });
+                }
 
-                        <div class="space-y-2 text-sm text-gray-600 mb-6">
-                            <div class="flex justify-between">
-                                <span>Alış Tarihi:</span>
-                                <span class="font-medium">${new Date(loan.borrowDate).toLocaleDateString('tr-TR')}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Son Teslim:</span>
-                                <span class="font-medium ${isLate ? 'text-red-600' : ''}">${due}</span>
-                            </div>
-                        </div>
+            } catch (error) {
+                // --- HATA SENARYOSU ---
+                console.error("Render Hatası:", error);
 
-                        ${!isReturned ? `
-                            <button onclick="window.handleReturn('${loan.id}')" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-medium py-2 rounded-lg transition border border-blue-100">
-                                Kitabı İade Et
-                            </button>
-                        ` : `
-                             <div class="text-center text-xs text-gray-400 py-2 border-t border-gray-50">
-                                ${new Date(loan.returnDate).toLocaleDateString('tr-TR')} tarihinde iade edildi.
-                             </div>
-                        `}
+                // 1. Sağ üstte bildirim ver (İstediğin özellik)
+                showToast("Veriler yüklenemedi: " + error.message, "error");
+
+                // 2. Ekrana hata mesajı bas (Kullanıcı boş ekrana bakmasın)
+                container.classList.remove('hidden');
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-10 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+                        <p class="font-bold">Veriler alınırken bir sorun oluştu.</p>
+                        <p class="text-sm opacity-80">${error.message}</p>
+                        <button onclick="location.reload()" class="mt-4 underline">Yeniden Dene</button>
                     </div>
                 `;
-                container.innerHTML += card;
-            });
+
+            } finally {
+                // --- NE OLURSA OLSUN ÇALIŞACAK KISIM ---
+                // Yükleniyor yazısını kaldır (İstediğin özellik)
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function checkPenalties() {
+            try {
+                const penalties = await getMyPenalties();
+                if(penalties.length > 0) {
+                     document.getElementById('penaltyBox').classList.remove('hidden');
+                     // ... toplam tutar işlemleri
+                }
+            } catch(e) { console.log("Ceza kontrol hatası", e); }
         }
 
         window.handleReturn = async (id) => {

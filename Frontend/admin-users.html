@@ -74,16 +74,24 @@
         }
 
         async function loadUsers() {
-            try {
-                // Backend Endpoint: UserController -> getAllUsers
-                const users = await request('/users'); 
-                renderUsers(users || []);
-            } catch (error) {
-                console.error(error);
-                showToast("Kullanıcı listesi çekilemedi!", "error");
-            }
-        }
-
+    try {
+        const users = await request('/users'); 
+        renderUsers(users || []);
+    } catch (error) {
+        console.error(error);
+        showToast("Veriler yüklenemedi: " + error.message, "error");
+        
+        // Tabloya hata mesajı bas ki "Yükleniyor" döngüsünde kalmasın
+        document.getElementById('usersTableBody').innerHTML = `
+            <tr>
+                <td colspan="5" class="p-8 text-center">
+                    <div class="text-rose-500 font-bold mb-2">Veri Yükleme Hatası</div>
+                    <p class="text-sm text-slate-500">${error.message}</p>
+                    <button onclick="location.reload()" class="mt-4 text-blue-600 hover:underline text-sm">Sayfayı Yenile</button>
+                </td>
+            </tr>`;
+    }
+}
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
             document.getElementById('totalUserCount').innerText = users.length;

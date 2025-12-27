@@ -31,6 +31,7 @@ public class BorrowingService {
     private final MailService mailService;
     private final PenaltyRepository penaltyRepository;
 
+    @Transactional(readOnly = true)
     public List<BorrowingResponse> getMyBorrowings(String email) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
@@ -41,6 +42,7 @@ public class BorrowingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<BorrowingResponse> getAllBorrowings() {
         return borrowingRepository.findAll()
                 .stream()
