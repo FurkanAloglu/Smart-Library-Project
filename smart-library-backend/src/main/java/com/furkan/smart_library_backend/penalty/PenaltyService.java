@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional; // DİKKAT: Do�
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID; // Düzeltildi: Long userId -> UUID userId
@@ -55,5 +56,10 @@ public class PenaltyService {
         return penaltyRepository.findAll().stream()
                 .map(PenaltyResponse::fromEntity)
                 .toList();
+    }
+
+    public void triggerManualPenaltyCalculation(UUID borrowingId) { //ceza tutarını değiştirmek için
+        BigDecimal dailyFee = new BigDecimal("0.50");
+        penaltyRepository.callCalculatePenalty(borrowingId, dailyFee);
     }
 }

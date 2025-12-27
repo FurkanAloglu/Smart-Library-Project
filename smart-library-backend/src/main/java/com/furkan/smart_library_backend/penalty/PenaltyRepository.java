@@ -20,4 +20,9 @@ public interface PenaltyRepository extends JpaRepository<Penalty, UUID> {
     @Override
     @EntityGraph(attributePaths = {"borrowing", "borrowing.user", "borrowing.book"})
     List<Penalty> findAll();
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(value = "SELECT calculate_penalty(:borrowingId, :dailyFee)", nativeQuery = true)
+    void callCalculatePenalty(@Param("borrowingId") UUID borrowingId, @Param("dailyFee") BigDecimal dailyFee);
 }

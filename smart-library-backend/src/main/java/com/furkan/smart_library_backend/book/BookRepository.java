@@ -18,4 +18,8 @@ public interface BookRepository extends JpaRepository<Book, UUID> {
     Optional<Book> findByIdAndDeletedFalse(UUID id);
 
     boolean existsByIsbnAndDeletedFalse(String isbn);
+
+    @Override
+    @EntityGraph(attributePaths = {"authors", "categories"})
+    List<Book> findAll();
 }

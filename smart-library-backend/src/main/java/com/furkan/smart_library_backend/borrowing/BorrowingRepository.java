@@ -1,5 +1,7 @@
 package com.furkan.smart_library_backend.borrowing;
 
+import com.furkan.smart_library_backend.book.Book;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

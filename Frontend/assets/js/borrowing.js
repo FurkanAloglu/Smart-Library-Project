@@ -40,3 +40,14 @@ export async function returnBook(borrowingId) {
         return false;
     }
 }
+
+// Dosya: borrowing.js -> En alta ekle
+
+export async function getMyPenalties() {
+    try {
+        return await request('/penalties/my') || [];
+    } catch (error) {
+        console.error("Cezalar çekilemedi:", error);
+        return [];
+    }
+}
