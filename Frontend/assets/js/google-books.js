@@ -16,7 +16,8 @@ export async function fetchBookDetails(isbn) {
                 pageCount: info.pageCount || 0,
                 authors: info.authors || [], 
                 categories: info.categories || [],
-                image: info.imageLinks?.thumbnail?.replace('http:', 'https:') || 
+                image: info.imageLinks?.medium?.replace('http:', 'https:') || 
+                       info.imageLinks?.thumbnail?.replace('http:', 'https:') || 
                        info.imageLinks?.smallThumbnail?.replace('http:', 'https:') || null,
                 publishedDate: info.publishedDate
             };
