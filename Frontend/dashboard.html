@@ -6,6 +6,9 @@
     <title>AKYS | Yönetim Paneli</title>
     <link rel="icon" type="image/png" href="https://img.icons8.com/ios-filled/100/2563eb/library.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { corePlugins: { preflight: false } };
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -533,27 +536,6 @@ async function findOrCreateItem(type, name) {
                 }
             };
         }
-
-            form.onsubmit = async (e) => {
-                e.preventDefault();
-                const data = Object.fromEntries(new FormData(form));
-                data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
-                data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
-                data.stock = parseInt(data.stock);
-
-                try {
-                    let success = false;
-                    if (editingBookId) {
-                        await updateBook(editingBookId, data);
-                        showToast("Kitap güncellendi", "success");
-                        success = true;
-                    } else {
-                        success = await createBook(data);
-                        if(success) showToast("Kitap eklendi", "success");
-                    }
-                    if (success) { toggleModal('addBookModal', false); refreshData(); }
-                } catch (error) { showToast(error.message, "error"); }
-            };
 
         function setupExtraModals() {
             // ... (Senin kodundaki Yazar/Kategori ekleme modal logicleri buraya) ...

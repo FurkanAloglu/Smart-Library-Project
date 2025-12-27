@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID; // Düzeltildi: Long userId -> UUID userId
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +40,7 @@ public class PenaltyService {
         penalty.setPaymentDate(LocalDateTime.now());
 
         Penalty savedPenalty = penaltyRepository.save(penalty);
-        return PenaltyResponse.fromEntity(savedPenalty); // Mapper hatası düzeltildi
+        return PenaltyResponse.fromEntity(savedPenalty);
     }
 
     public List<PenaltyResponse> getMyPenalties(String email) {
