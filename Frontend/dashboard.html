@@ -23,25 +23,26 @@
 
     <main class="container mx-auto px-6 py-8 animate-fade-up">
         
-        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-8 gap-6">            
-            <div id="adminButtonParams" class="hidden flex flex-wrap gap-3">
-                <button id="addAuthorBtn" class="bg-white text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-2 font-bold shadow-sm text-sm">
-                    <i class="fa-solid fa-feather-pointed"></i> <span>Yazar Ekle</span>
-                </button>
-                <button id="addCategoryBtn" class="bg-white text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-2 font-bold shadow-sm text-sm">
-                    <i class="fa-solid fa-tags"></i> <span>Kategori Ekle</span>
-                </button>
-                <button id="addBookBtn" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2 transform hover:scale-105 text-sm">
-                    <i class="fa-solid fa-plus"></i> <span class="font-bold">Kitap Ekle</span>
-                </button>
-            </div>
-        </div>
-        <div class="mb-6 relative">
-           <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-             <input type="text" id="globalSearch" 
-                 placeholder="Kitap adı, yazar veya ISBN ara..." 
-                 class="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all shadow-sm">
-        </div>
+      <div id="adminButtonParams" class="hidden flex flex-wrap gap-3 items-center">
+    <button id="addAuthorBtn" class="h-12 bg-white text-slate-600 px-5 rounded-xl hover:bg-white hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 font-bold shadow-sm text-sm">
+        <i class="fa-solid fa-feather-pointed"></i> <span>Yazar Ekle</span>
+    </button>
+    
+    <button id="addCategoryBtn" class="h-12 bg-white text-slate-600 px-5 rounded-xl hover:bg-white hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2 font-bold shadow-sm text-sm">
+        <i class="fa-solid fa-tags"></i> <span>Kategori Ekle</span>
+    </button>
+    
+    <button id="addBookBtn" class="h-12 bg-blue-600 text-white px-6 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-blue-300 transition-all duration-300 flex items-center gap-2 text-sm font-bold transform active:scale-95">
+        <i class="fa-solid fa-plus"></i> <span>Kitap Ekle</span>
+    </button>
+</div>
+
+<div class="mb-6 relative w-full">
+    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+    <input type="text" id="globalSearch" 
+        placeholder="Kitap adı, yazar veya ISBN ile arama yapın..." 
+        class="h-12 w-full pl-12 pr-4 rounded-xl shadow-sm focus:shadow-md outline-none transition-all bg-white text-slate-600 placeholder:text-slate-400">
+</div>
 
         <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 hidden"></div>
         <div id="pagination" class="flex justify-center items-center gap-2 mt-12 mb-8 hidden"></div>
@@ -178,47 +179,61 @@
      class="fixed inset-0 z-[60] bg-slate-900/30 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
 </div>
 
+<div id="drawerBackdrop" 
+     onclick="closeDrawer()"
+     class="fixed inset-0 z-[60] bg-slate-900/30 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+</div>
+
+<div id="drawerBackdrop" 
+     onclick="closeDrawer()"
+     class="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0">
+</div>
+
 <div id="bookDrawer" 
-     class="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+     class="fixed top-0 left-0 z-[70] h-full w-full max-w-[450px] bg-white shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col font-sans">
     
-    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
-        <h3 class="font-bold text-slate-800 text-lg">Kitap Detayı</h3>
-        <button onclick="closeDrawer()" class="w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition">
-            <i class="fa-solid fa-xmark"></i>
+    <div class="px-6 py-4 border-b border-slate-50 flex justify-between items-center bg-white shrink-0">
+        <h3 class="font-black text-slate-800 text-lg tracking-tight">Kitap Detayı</h3>
+        <button onclick="closeDrawer()" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-rose-600 transition">
+            <i class="fa-solid fa-xmark text-lg"></i>
         </button>
     </div>
 
-    <div class="flex-grow overflow-y-auto custom-scrollbar p-6 space-y-6">
+    <div class="flex-grow flex flex-col min-h-0 overflow-hidden">
         
-        <div class="relative w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-lg border border-slate-200 group">
-            <img id="drawerImage" src="" class="w-full h-full object-cover transition duration-700 group-hover:scale-105" alt="Kitap Kapağı">
-            <div id="drawerStockBadge" class="absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm"></div>
-        </div>
+        <div class="p-6 bg-slate-50/50 flex gap-5 shrink-0 border-b border-slate-100">
+            <div class="w-28 shrink-0 flex flex-col gap-2">
+                <img id="drawerImage" src="" class="w-full aspect-[2/3] object-cover rounded-lg shadow-md bg-white" alt="Kapak">
+                <div id="drawerStockBadge" class="text-[10px] text-center font-bold py-1.5 px-2 rounded-lg shadow-sm"></div>
+            </div>
 
-        <div>
-            <h2 id="drawerTitle" class="text-2xl font-bold text-slate-800 leading-tight mb-2"></h2>
-            <div class="flex items-center gap-2 text-slate-500 font-medium">
-                <i class="fa-solid fa-feather-pointed text-blue-500"></i>
-                <span id="drawerAuthor"></span>
+            <div class="flex-grow min-w-0 pt-1">
+                <h2 id="drawerTitle" class="text-xl font-black text-slate-800 leading-tight mb-2 line-clamp-3"></h2>
+                
+                <div class="flex items-center gap-2 text-slate-500 text-sm font-medium mb-3">
+                    <i class="fa-solid fa-feather-pointed text-blue-500 text-xs"></i>
+                    <span id="drawerAuthor" class="truncate"></span>
+                </div>
+
+                <div id="drawerCategories" class="flex flex-wrap gap-1.5 mb-4"></div>
+
+                <div class="flex items-center gap-2 text-[11px] text-slate-400 font-mono bg-white px-2 py-1 rounded border border-slate-100 inline-flex shadow-sm">
+                    <i class="fa-solid fa-barcode"></i>
+                    <span id="drawerIsbn"></span>
+                </div>
             </div>
         </div>
 
-        <div id="drawerCategories" class="flex flex-wrap gap-2"></div>
-
-        <div class="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-4">
-            <div class="flex items-center gap-3 text-sm text-slate-500 border-b border-slate-200 pb-3">
-                <i class="fa-solid fa-barcode text-xl"></i>
-                <span id="drawerIsbn" class="font-mono tracking-wider font-bold text-slate-700"></span>
-            </div>
-            <div>
-                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Açıklama</h4>
-                <p id="drawerDesc" class="text-slate-600 text-sm leading-relaxed whitespace-pre-line"></p>
-            </div>
+        <div class="flex-grow overflow-y-auto custom-scrollbar p-6 bg-white">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <i class="fa-solid fa-align-left"></i> Kitap Hakkında
+            </h4>
+            <p id="drawerDesc" class="text-slate-600 text-sm leading-7 text-justify whitespace-pre-line"></p>
         </div>
     </div>
 
-    <div class="p-6 border-t border-slate-100 bg-white" id="drawerFooter">
-        </div>
+    <div class="p-5 border-t border-slate-100 bg-white shrink-0" id="drawerFooter">
+    </div>
 </div>
 
     <div id="toastContainer" class="fixed top-5 right-5 z-[70] flex flex-col gap-2"></div>
@@ -584,93 +599,96 @@ async function findOrCreateItem(type, name) {
             renderLocalPage(1);
         }
 
-        function renderLocalPage(page) {
-            currentPage = page;
-            const start = (page - 1) * itemsPerPage;
-            
-            const paged = filteredBooks.slice(start, start + itemsPerPage);
-            const grid = document.getElementById('bookGrid');
-            
-            if (filteredBooks.length === 0) {
-                document.getElementById('emptyMessage').classList.remove('hidden');
-                grid.classList.add('hidden');
-                document.getElementById('pagination').classList.add('hidden');
-                return;
-            }
+    // dashboard.html <script> içindeki renderLocalPage fonksiyonunu komple bununla değiştir:
 
-            document.getElementById('emptyMessage').classList.add('hidden');
-            grid.classList.remove('hidden');
-            
-            grid.innerHTML = paged.map(book => {
-                // Kitap verisini güvenli stringe çeviriyoruz (Tırnak hatalarını önlemek için)
-                const bookData = JSON.stringify(book).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+function renderLocalPage(page) {
+    currentPage = page;
+    const start = (page - 1) * itemsPerPage;
+    const paged = filteredBooks.slice(start, start + itemsPerPage);
+    const grid = document.getElementById('bookGrid');
+    
+    if (filteredBooks.length === 0) {
+        document.getElementById('emptyMessage').classList.remove('hidden');
+        grid.classList.add('hidden');
+        document.getElementById('pagination').classList.add('hidden');
+        return;
+    }
 
-                return `
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col h-full animate-fade-up">
-                    <div class="relative aspect-[2/3] bg-slate-50 border-b group">
-                        <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110">
-                        <div class="absolute top-2 right-2"><span class="${book.stock > 0 ? 'bg-emerald-500' : 'bg-rose-500'} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">STOK: ${book.stock}</span></div>
-                    </div>
-                    <div class="p-4 flex flex-col flex-grow">
-                        <h3 class="font-bold text-slate-800 text-sm line-clamp-2 h-10 mb-1" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</h3>
-                        <p class="text-[11px] text-slate-500 mb-4">${book.authors?.map(a => escapeHtml(a.name)).join(', ') || 'Bilinmiyor'}</p>
-                        
-                        <div class="mt-auto pt-3 border-t border-slate-50 flex items-center gap-2">
-                            ${currentUser?.role === 'ADMIN' ? 
-                                `
-                                <div class="flex justify-end gap-2 w-full">
-                                     <button onclick='window.showDetail(${bookData})' class="text-slate-400 hover:text-blue-600 transition p-2 bg-slate-50 rounded-lg hover:bg-blue-50" title="Detay">
-                                       <i class="fa-solid fa-eye"></i>
-                                     </button>
-                                     <button onclick="window.handleEdit('${book.id}')" class="text-slate-400 hover:text-blue-600 transition p-2 bg-slate-50 rounded-lg hover:bg-blue-50" title="Düzenle">
-                                       <i class="fa-solid fa-pen-to-square"></i>
-                                     </button>
-                                     <button onclick="window.handleDelete('${book.id}')" class="text-slate-400 hover:text-rose-600 transition p-2 bg-slate-50 rounded-lg hover:bg-rose-50" title="Sil">
-                                      <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </div>`
-                                : 
-                                `
-                                <div class="flex gap-2 w-full">
-                                    <button onclick='window.showDetail(${bookData})' class="text-slate-400 hover:text-blue-600 transition p-2.5 bg-slate-50 rounded-lg hover:bg-blue-50 shrink-0" title="Detay">
-                                       <i class="fa-solid fa-eye"></i>
-                                    </button>
-                                    <button onclick="window.handleBorrow('${book.id}')" ${book.stock <= 0 ? 'disabled' : ''} class="flex-grow bg-blue-600 text-white text-xs font-bold py-2.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                        ${book.stock > 0 ? 'Ödünç Al' : 'Tükendi'}
-                                    </button>
-                                </div>
-                                `}
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
+    document.getElementById('emptyMessage').classList.add('hidden');
+    grid.classList.remove('hidden');
+    
+    grid.innerHTML = paged.map(book => {
+        return `
+        <div onclick="window.openBookDetail('${book.id}')" 
+             class="bg-white rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full animate-fade-up cursor-pointer group select-none overflow-hidden relative">
             
-            renderPagination();
-        }
-        
+            <div class="relative aspect-[2/3] bg-slate-100 overflow-hidden">
+                <img src="${book.imageUrl || './assets/js/library-bg.jpg'}" class="w-full h-full object-cover transition duration-700 group-hover:scale-105">
+                
+                <div class="absolute top-3 right-3">
+                    <span class="${book.stock > 0 ? 'bg-white/90 text-emerald-600' : 'bg-white/90 text-rose-600'} text-[10px] font-black px-2.5 py-1.5 rounded-lg shadow-sm backdrop-blur-sm">
+                        ${book.stock > 0 ? book.stock + ' ADET' : 'TÜKENDİ'}
+                    </span>
+                </div>
+            </div>
 
-        function renderPagination() {
-            // DİKKAT: filteredBooks.length kullanıyoruz
-            const total = Math.ceil(filteredBooks.length / itemsPerPage);
-            const cont = document.getElementById('pagination');
-            cont.innerHTML = '';
-            
-            if (total <= 1) {
-                cont.classList.add('hidden');
-                return;
-            }
-            
-            cont.classList.remove('hidden');
-            
-            // Basit pagination (çok sayfa varsa ... koymaz, ama çalışır)
-            for (let i = 1; i <= total; i++) {
-                const btn = document.createElement('button');
-                btn.innerText = i;
-                btn.className = `w-9 h-9 rounded-lg font-bold text-xs transition ${i === currentPage ? 'bg-blue-600 text-white shadow-lg scale-110' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`;
-                btn.onclick = () => { renderLocalPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-                cont.appendChild(btn);
-            }
-        }
+            <div class="p-5 flex flex-col flex-grow">
+                <h3 class="font-bold text-slate-800 text-sm line-clamp-2 mb-1 leading-snug group-hover:text-blue-600 transition-colors" title="${escapeHtml(book.title)}">
+                    ${escapeHtml(book.title)}
+                </h3>
+                <p class="text-[11px] text-slate-400 font-medium mb-4 flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-nib text-[10px]"></i>
+                    ${book.authors?.map(a => escapeHtml(a.name)).join(', ') || 'Bilinmiyor'}
+                </p>
+                
+                <div class="mt-auto pt-2 flex items-center gap-2">
+                    ${currentUser?.role === 'ADMIN' ? 
+                        `<div class="flex justify-end gap-2 w-full">
+                             <button onclick="event.stopPropagation(); window.handleEdit('${book.id}')" class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-blue-600 hover:text-white transition shadow-sm hover:shadow-md" title="Düzenle">
+                               <i class="fa-solid fa-pen-to-square"></i>
+                             </button>
+                             <button onclick="event.stopPropagation(); window.handleDelete('${book.id}')" class="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-600 hover:text-white transition shadow-sm hover:shadow-md" title="Sil">
+                              <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>`
+                        : 
+                        `<button onclick="event.stopPropagation(); window.handleBorrow('${book.id}')" 
+                                ${book.stock <= 0 ? 'disabled' : ''} 
+                                class="w-full h-10 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-blue-200 hover:shadow-lg flex items-center justify-center gap-2 transform active:scale-95">
+                            ${book.stock > 0 ? 'Ödünç Al' : 'Stok Tükendi'}
+                        </button>`
+                    }
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    renderPagination();
+}
+
+// Pagination fonksiyonunu da sadeleştir (Ring kalktı)
+function renderPagination() {
+    const total = Math.ceil(filteredBooks.length / itemsPerPage);
+    const cont = document.getElementById('pagination');
+    cont.innerHTML = '';
+    
+    if (total <= 1) {
+        cont.classList.add('hidden');
+        return;
+    }
+    cont.classList.remove('hidden');
+    
+    for (let i = 1; i <= total; i++) {
+        const btn = document.createElement('button');
+        btn.innerText = i;
+        // Ring-1 ve border-slate-200 kalktı. Sadece shadow.
+        btn.className = `w-10 h-10 flex items-center justify-center rounded-xl font-bold text-xs transition-all duration-300 ${i === currentPage 
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-110' 
+            : 'bg-white text-slate-500 shadow-sm hover:shadow-md hover:text-blue-600'}`; 
+        btn.onclick = () => { renderLocalPage(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        cont.appendChild(btn);
+    }
+}
 
         window.handleEdit = async (id) => {
              // ... (Senin handleEdit kodun aynen kalsın) ...
@@ -711,84 +729,83 @@ async function findOrCreateItem(type, name) {
 
         init();
         // Yan Paneli Açan Fonksiyon
-window.showDetail = (book) => {
+window.openBookDetail = (id) => {
+    // 1. Kitabı bul (Hafızadaki listeden)
+    const book = allBooks.find(b => b.id === id);
+    if (!book) return; // Kitap yoksa işlem yapma
+
     const drawer = document.getElementById('bookDrawer');
     const backdrop = document.getElementById('drawerBackdrop');
     
-    // 1. Verileri Doldur
+    // 2. İçeriği Doldur
     document.getElementById('drawerTitle').innerText = book.title;
     document.getElementById('drawerAuthor').innerText = book.authors?.map(a => a.name).join(', ') || 'Yazar Bilinmiyor';
     document.getElementById('drawerIsbn').innerText = book.isbn;
     
-    const descText = book.description ? book.description : "Bu kitap için henüz bir açıklama girilmemiş.";
+    // Açıklama kontrolü
+    const descText = book.description ? book.description : "Bu kitap için henüz detaylı bir açıklama girilmemiş.";
     document.getElementById('drawerDesc').innerText = descText;
 
-    // Resim Ayarı
-    const imgEl = document.getElementById('drawerImage');
-    imgEl.src = book.imageUrl || './assets/js/library-bg.jpg';
+    // Resim
+    document.getElementById('drawerImage').src = book.imageUrl || './assets/js/library-bg.jpg';
 
-    // Stok Rozeti Ayarı
+    // Stok Rozeti
     const badge = document.getElementById('drawerStockBadge');
     if (book.stock > 0) {
-        badge.className = "absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm bg-emerald-500 text-white";
-        badge.innerText = `STOKTA: ${book.stock}`;
+        badge.className = "text-[10px] text-center font-black py-1 px-2.5 rounded shadow-sm bg-emerald-100 text-emerald-700 border border-emerald-200";
+        badge.innerText = `STOK: ${book.stock}`;
     } else {
-        badge.className = "absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow-sm bg-rose-500 text-white";
+        badge.className = "text-[10px] text-center font-black py-1 px-2.5 rounded shadow-sm bg-rose-100 text-rose-700 border border-rose-200";
         badge.innerText = "TÜKENDİ";
     }
 
-    // Kategorileri Rozet Olarak Ekle
+    // Kategoriler
     const catContainer = document.getElementById('drawerCategories');
     catContainer.innerHTML = book.categories?.map(c => 
-        `<span class="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-lg border border-blue-100">${c.name}</span>`
+        `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded border border-slate-200">${c.name}</span>`
     ).join('') || '';
 
-    // 2. Footer Butonunu Ayarla (Dinamik)
+    // 3. Footer Butonları (Role göre)
     const footer = document.getElementById('drawerFooter');
-    
     if (currentUser.role === 'ADMIN') {
-        // Admin ise Düzenle Butonu Göster
         footer.innerHTML = `
-            <button onclick="closeDrawer(); window.handleEdit('${book.id}')" class="w-full py-3.5 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2">
+            <button onclick="closeDrawer(); window.handleEdit('${book.id}')" class="w-full h-12 rounded-xl bg-slate-800 text-white font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2 shadow-lg hover:shadow-xl">
                 <i class="fa-solid fa-pen-to-square"></i> Düzenle
             </button>
         `;
     } else {
-        // Normal Kullanıcı ise Ödünç Al Butonu
         if (book.stock > 0) {
             footer.innerHTML = `
-                <button onclick="closeDrawer(); window.handleBorrow('${book.id}')" class="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-book-bookmark"></i> Hemen Ödünç Al
+                <button onclick="closeDrawer(); window.handleBorrow('${book.id}')" class="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 hover:shadow-blue-300 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i> Kitabı Ödünç Al
                 </button>
             `;
         } else {
             footer.innerHTML = `
-                <button disabled class="w-full py-3.5 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed flex items-center justify-center gap-2 border border-slate-200">
-                    <i class="fa-regular fa-face-sad-tear"></i> Stokta Yok
+                <button disabled class="w-full h-12 rounded-xl bg-slate-100 text-slate-400 font-bold cursor-not-allowed border border-slate-200 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-ban"></i> Stokta Yok
                 </button>
             `;
         }
     }
 
-    // 3. Paneli Aç (Animasyonlu)
+    // 4. Animasyonlu Açılış (Soldan Sağa)
     backdrop.classList.remove('hidden');
-    // Tarayıcının render yapması için minik bir gecikme şart (fade effect için)
     setTimeout(() => {
         backdrop.classList.remove('opacity-0');
-        drawer.classList.remove('translate-x-full');
+        // Sol tarafta gizli olan paneli (-translate-x-full) sıfır noktasına çekiyoruz
+        drawer.classList.remove('-translate-x-full'); 
     }, 10);
 };
 
-// Yan Paneli Kapatan Fonksiyon
 window.closeDrawer = () => {
     const drawer = document.getElementById('bookDrawer');
     const backdrop = document.getElementById('drawerBackdrop');
 
-    // Önce paneli dışarı it ve opacity düşür
-    drawer.classList.add('translate-x-full');
+    // Sola geri it (-translate-x-full ekle)
+    drawer.classList.add('-translate-x-full');
     backdrop.classList.add('opacity-0');
 
-    // Animasyon bitince gizle (300ms transition süresiyle uyumlu)
     setTimeout(() => {
         backdrop.classList.add('hidden');
     }, 300);
