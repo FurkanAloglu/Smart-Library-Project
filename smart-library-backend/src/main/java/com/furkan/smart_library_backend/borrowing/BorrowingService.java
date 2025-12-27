@@ -90,8 +90,8 @@ public class BorrowingService {
                     .user(user)
                     .book(book)
                     .borrowDate(LocalDateTime.now())
-                    .dueDate(LocalDateTime.now().plusDays(14)) // PROD
-                    // .dueDate(LocalDateTime.now().plusMinutes(1)) // TEST
+                    //.dueDate(LocalDateTime.now().plusDays(14)) // PROD
+                     .dueDate(LocalDateTime.now().plusMinutes(1)) // TEST
                     .build();
 
             Borrowing saved = borrowingRepository.save(borrowing);
