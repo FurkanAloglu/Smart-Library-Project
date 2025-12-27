@@ -8,7 +8,6 @@ export async function getMyBorrowings() {
         return data || []; 
     } catch (error) {
         console.error("❌ borrowing.js içinde hata yakalandı:", error);
-        // ÖNEMLİ: Hatayı yutma, tekrar fırlat ki HTML sayfası yakalayabilsin!
         throw error; 
     }
 }

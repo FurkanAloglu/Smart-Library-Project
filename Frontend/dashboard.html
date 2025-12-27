@@ -54,6 +54,7 @@
     </main>
 
     <div id="addBookModal" class="fixed inset-0 z-50 hidden">
+        
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 modal-backdrop"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform scale-95 opacity-0 flex flex-col md:flex-row overflow-hidden max-h-[90vh] modal-panel">
@@ -120,7 +121,7 @@
 
                     <div class="px-8 py-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
                         <button type="button" class="closeModalBtn px-6 py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-medium">İptal</button>
-                        <button type="submit" form="addBookForm" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-lg font-medium">Kaydet</button>
+                        <button type="submit" form="addBookForm" id="saveBookBtn" class="px-8 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-lg font-medium">Kaydet</button>
                     </div>
                 </div>
             </div>
@@ -476,87 +477,171 @@ async function findOrCreateItem(type, name) {
         function setupBookModalLogic(authorSelectControl, categorySelectControl) {
              const modalId = 'addBookModal';
              const form = document.getElementById('addBookForm');
+             const saveBtn = document.getElementById('saveBookBtn'); // ID ile kesin seçim
 
-             // 1. Ortak Temizlik Fonksiyonu (DRY)
-             // Formu, dropdownları ve resim alanlarını sıfırlar
+             // 1. Ortak Temizlik Fonksiyonu
              const resetForm = () => {
-                 form.reset(); // Standart inputları temizle
-                 authorSelectControl.reset(); // Yazar etiketlerini temizle
-                 categorySelectControl.reset(); // Kategori etiketlerini temizle
+                 form.reset(); 
+                 authorSelectControl.reset(); 
+                 categorySelectControl.reset(); 
                  
                  editingBookId = null; 
                  
-                 // Resim alanlarını varsayılana döndür
                  document.getElementById('coverImage').src = "";
                  document.getElementById('coverImage').classList.add('hidden'); 
                  document.getElementById('coverPreview').classList.remove('hidden');
-                 document.getElementById('imageUrlInput').value = ""; // Hidden inputu manuel temizle!
+                 document.getElementById('imageUrlInput').value = ""; 
                  
-                 // Buton metnini varsayılana döndür
-                 document.querySelector('button[form="addBookForm"]').textContent = "Kaydet";
+                 // Buton metnini güvenli şekilde resetle
+                 if(saveBtn) {
+                     saveBtn.textContent = "Kaydet";
+                     saveBtn.disabled = false;
+                 }
              };
 
-             // "Kitap Ekle" butonuna basınca (Modal Açılışı)
+             // Modal Açılış
              document.getElementById('addBookBtn').onclick = () => {
-                resetForm(); // Açarken temizle ki eski veri kalmasın
+                resetForm();
                 document.querySelector('#addBookModal h3').textContent = "Yeni Kitap Kaydı";
                 toggleModal(modalId, true);
             };
 
-            // "İptal" veya "Kapat" butonlarına basınca
+            // Modal Kapanış
             document.querySelectorAll('.closeModalBtn').forEach(btn => btn.onclick = () => {
                 toggleModal(modalId, false);
-                setTimeout(resetForm, 300); // Animasyon bitince temizle
+                setTimeout(resetForm, 300);
             });
 
-            // ... (fetchCoverBtn kodların burada aynen kalacak) ...
-
-            // Form Gönderimi (Submit)
+            // Form Submit Eventi
             form.onsubmit = async (e) => {
-                e.preventDefault();
-                
-                // Butonu kilitle (Çift tıklamayı önle)
-                const submitBtn = form.querySelector('button[type="submit"]');
-                const oldText = submitBtn.textContent;
-                submitBtn.disabled = true;
-                submitBtn.textContent = "İşleniyor...";
+                e.preventDefault(); // Sayfa yenilenmesini engelle
+                console.log("Form submit tetiklendi! İşlem başlıyor..."); // LOG 1
 
-                const data = Object.fromEntries(new FormData(form));
-                data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
-                data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
-                data.stock = parseInt(data.stock);
+                // Buton kontrolü
+                if (!saveBtn) {
+                    console.error("HATA: saveBookBtn bulunamadı!");
+                    showToast("Sistem hatası: Buton bulunamadı.", "error");
+                    return;
+                }
+
+                // Butonu kilitle
+                const oldText = saveBtn.textContent;
+                saveBtn.disabled = true;
+                saveBtn.textContent = "İşleniyor...";
 
                 try {
+                    // Verileri topla
+                    const data = Object.fromEntries(new FormData(form));
+                    data.authorIds = JSON.parse(document.getElementById('hiddenAuthorIds').value || "[]");
+                    data.categoryIds = JSON.parse(document.getElementById('hiddenCategoryIds').value || "[]");
+                    data.stock = parseInt(data.stock);
+
+                    console.log("Gönderilecek Veri:", data); // LOG 2
+
                     let success = false;
                     if (editingBookId) {
                         await updateBook(editingBookId, data);
-                        showToast("Kitap güncellendi", "success");
+                        showToast("Kitap başarıyla güncellendi", "success");
                         success = true;
                     } else {
                         success = await createBook(data);
-                        if(success) showToast("Kitap eklendi", "success");
+                        if(success) showToast("Kitap başarıyla eklendi", "success");
                     }
                     
                     if (success) { 
                         toggleModal('addBookModal', false); 
                         refreshData();
-                        setTimeout(resetForm, 300); // <--- KRİTİK NOKTA: Başarılıysa temizle
+                        setTimeout(resetForm, 300); 
                     }
                 } catch (error) { 
-                    showToast(error.message, "error"); 
+                    console.error("İşlem Hatası:", error); // LOG 3
+                    showToast(error.message || "Bir hata oluştu", "error"); 
                 } finally {
-                    // Buton kilidini aç
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = oldText;
+                    // Butonu her durumda eski haline getir
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = editingBookId ? "Güncelle" : "Kaydet";
                 }
             };
         }
 
         function setupExtraModals() {
+
+            // ISBN ile Kitap Getir Butonu
+            // ISBN ile Kitap Getir Butonu
+            document.getElementById('fetchCoverBtn').onclick = async () => {
+                const isbnInput = document.getElementById('isbnInput');
+                // EKSİK OLAN SATIR BU:
+                const form = document.getElementById('addBookForm'); 
+                
+                const isbn = isbnInput.value.trim();
+                const btn = document.getElementById('fetchCoverBtn');
+
+                if (!isbn) {
+                    showToast("Lütfen bir ISBN giriniz", "error");
+                    return;
+                }
+                
+                // ... kodun geri kalanı aynen devam ediyor ...
+
+                // Butonu kilitle
+                const originalText = btn.textContent;
+                btn.textContent = "Aranıyor...";
+                btn.disabled = true;
+
+                try {
+                    // google-books.js modülündeki fonksiyonu çağır
+                    const book = await fetchBookDetails(isbn);
+
+                    if (book) {
+                        // 1. Basit Alanları Doldur
+                        form.querySelector('[name=title]').value = book.title || "";
+                        form.querySelector('[name=description]').value = book.description || "";
+                        form.querySelector('[name=imageUrl]').value = book.image || "";
+
+                        // 2. Kapak Resmi Önizlemesi
+                        if (book.image) {
+                            document.getElementById('coverImage').src = book.image;
+                            document.getElementById('coverImage').classList.remove('hidden');
+                            document.getElementById('coverPreview').classList.add('hidden');
+                        }
+
+                        // 3. Yazarları Ekle (Backend'de yoksa oluşturur)
+                        authorSelectControl.reset(); // Önce temizle
+                        if (book.authors && book.authors.length > 0) {
+                            for (const authorName of book.authors) {
+                                // findOrCreateItem fonksiyonunu kullan (dashboard.html içinde tanımlı)
+                                const item = await findOrCreateItem('authors', authorName);
+                                if (item) authorSelectControl.selectExternal(item);
+                            }
+                        }
+
+                        // 4. Kategorileri Ekle
+                        categorySelectControl.reset();
+                        if (book.categories && book.categories.length > 0) {
+                            for (const catName of book.categories) {
+                                const item = await findOrCreateItem('categories', catName);
+                                if (item) categorySelectControl.selectExternal(item);
+                            }
+                        }
+
+                        showToast("Kitap bilgileri başarıyla çekildi", "success");
+                    } else {
+                        showToast("Bu ISBN ile kayıt bulunamadı", "error");
+                    }
+                } catch (error) {
+                    console.error("Fetch Error:", error);
+                    showToast("Google API bağlantısında hata oluştu", "error");
+                } finally {
+                    // Butonu eski haline getir
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            };
             // ... (Senin kodundaki Yazar/Kategori ekleme modal logicleri buraya) ...
             // Bu kısımda bir sorun yoktu.
             const authorModalId = 'addAuthorModal';
             const authorForm = document.getElementById('addAuthorForm');
+
             document.getElementById('addAuthorBtn').onclick = () => toggleModal(authorModalId, true);
             document.querySelectorAll('.closeAuthorModalBtn').forEach(btn => btn.onclick = () => toggleModal(authorModalId, false));
             authorForm.onsubmit = async (e) => {
