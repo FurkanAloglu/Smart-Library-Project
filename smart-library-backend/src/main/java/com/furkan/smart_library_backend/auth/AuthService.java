@@ -12,6 +12,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
@@ -31,43 +33,58 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     public UserResponse login(LoginRequest request, HttpServletResponse response) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.email(), request.password())
+            );
 
-        User user = userRepository.findByEmailAndDeletedFalse(request.email())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            User user = userRepository.findByEmailAndDeletedFalse(request.email())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        var userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+            var userDetails = userDetailsService.loadUserByUsername(user.getEmail());
 
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
+            String accessToken = jwtService.generateAccessToken(userDetails);
+            String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        addCookie(response, "accessToken", accessToken, 15 * 60);
-        addCookie(response, "refreshToken", refreshToken, 7 * 24 * 60 * 60);
+            addCookie(response, "accessToken", accessToken, 15 * 60);
+            addCookie(response, "refreshToken", refreshToken, 7 * 24 * 60 * 60);
 
-        return UserResponse.fromEntity(user);
+            return UserResponse.fromEntity(user);
+        } catch (Exception e) {
+            log.error("Error in AuthService.login request={}", request, e);
+            throw new RuntimeException("Failed to login", e);
+        }
     }
 
     public UserResponse register(@Valid RegisterRequest request){
-        if (userRepository.existsByEmailAndDeletedFalse(request.email())) {
-            throw new IllegalArgumentException("Bu email adresi zaten kullanımda.");
-        }
-        User user = User.builder()
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .fullName(request.fullName())
-                .role(Role.USER)
-                .deleted(false)
-                .build();
+        try {
+            if (userRepository.existsByEmailAndDeletedFalse(request.email())) {
+                throw new IllegalArgumentException("Bu email adresi zaten kullanımda.");
+            }
+            User user = User.builder()
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .fullName(request.fullName())
+                    .role(Role.USER)
+                    .deleted(false)
+                    .build();
 
-        User savedUser = userRepository.save(user);
-        return UserResponse.fromEntity(savedUser);
+            User savedUser = userRepository.save(user);
+            return UserResponse.fromEntity(savedUser);
+        } catch (Exception e) {
+            log.error("Error in AuthService.register request={}", request, e);
+            throw new RuntimeException("Failed to register user", e);
+        }
     }
 
     public void logout(HttpServletResponse response) {
-        addCookie(response, "accessToken", "", 0);
-        addCookie(response, "refreshToken", "", 0);
+        try {
+            addCookie(response, "accessToken", "", 0);
+            addCookie(response, "refreshToken", "", 0);
+        } catch (Exception e) {
+            log.error("Error in AuthService.logout", e);
+            throw new RuntimeException("Failed to logout", e);
+        }
     }
 
     private void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
