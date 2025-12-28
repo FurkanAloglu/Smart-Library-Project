@@ -72,11 +72,9 @@ public class UserService {
     @Transactional
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
         try {
-            // 1. Kullanıcıyı bul
             User userToUpdate = userRepository.findByIdAndDeletedFalse(id)
                     .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-            // 2. İşlemi yapan kim? (Security Context'ten al)
             var auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || auth.getName() == null) {
                 throw new RuntimeException("Authenticated user not found in security context");
@@ -86,24 +84,18 @@ public class UserService {
             User currentUser = userRepository.findByEmailAndDeletedFalse(currentPrincipalName)
                     .orElseThrow(() -> new EntityNotFoundException("Authenticated user not found"));
 
-            // 3. GÜVENLİK KONTROLÜ: Başkasını güncellemeye çalışıyor mu?
-            // Eğer işlem yapan ADMIN değilse VE güncellemeye çalıştığı ID kendi ID'si değilse -> HATA
             if (currentUser.getRole() != Role.ADMIN && !currentUser.getId().equals(id)) {
                 throw new AccessDeniedException("Başkalarının profilini güncelleyemezsiniz.");
             }
 
-            // Email çakışma kontrolü
             if (!userToUpdate.getEmail().equals(request.email()) &&
                     userRepository.existsByEmailAndDeletedFalse(request.email())) {
                 throw new IllegalArgumentException("Email already in use");
             }
 
-            // Bilgileri güncelle
             userToUpdate.setEmail(request.email());
             userToUpdate.setFullName(request.fullName());
 
-            // 4. ROL GÜNCELLEME GÜVENLİĞİ:
-            // Sadece ADMIN rol değiştirebilir. Normal kullanıcı kendi rolünü değiştiremez.
             if (request.role() != null && currentUser.getRole() == Role.ADMIN) {
                 userToUpdate.setRole(request.role());
             }

@@ -23,22 +23,19 @@ public class PenaltyService {
     private final UserRepository userRepository;
 
     @Transactional
-    public PenaltyResponse payPenalty(UUID penaltyId, UUID userId) { // ID tipi UUID yapıldı
+    public PenaltyResponse payPenalty(UUID penaltyId, UUID userId) {
         try {
             Penalty penalty = penaltyRepository.findById(penaltyId)
                     .orElseThrow(() -> new RuntimeException("Ceza bulunamadı!"));
 
-            // 1. Güvenlik: Başkasının cezasını ödemeye çalışma kontrolü
             if (!penalty.getBorrowing().getUser().getId().equals(userId)) {
                 throw new RuntimeException("Bu işlem için yetkiniz yok.");
             }
 
-            // 2. Mantık: Zaten ödenmiş mi?
             if (penalty.isPaid()) {
                 throw new RuntimeException("Bu ceza zaten ödenmiş.");
             }
 
-            // 3. Ödeme İşlemi
             penalty.setPaid(true);
             penalty.setPaymentDate(LocalDateTime.now());
 
@@ -75,7 +72,7 @@ public class PenaltyService {
         }
     }
 
-    public void triggerManualPenaltyCalculation(UUID borrowingId) { //ceza tutarını değiştirmek için
+    public void triggerManualPenaltyCalculation(UUID borrowingId) {
         try {
             BigDecimal dailyFee = new BigDecimal("0.50");
             penaltyRepository.callCalculatePenalty(borrowingId, dailyFee);

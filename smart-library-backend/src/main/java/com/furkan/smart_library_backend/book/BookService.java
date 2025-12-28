@@ -53,19 +53,15 @@ public class BookService {
     @Transactional
     public BookResponse createBook(BookRequest request) {
         try {
-            // ISBN Kontrolü
             if (bookRepository.existsByIsbnAndDeletedFalse(request.isbn())) {
                 throw new IllegalArgumentException("Book with this ISBN already exists");
             }
 
-            // İlişkileri Getir (Senkron çalışır, olması gereken budur)
             Set<Author> authors = fetchAuthors(request.authorIds());
             Set<Category> categories = fetchCategories(request.categoryIds());
 
             try {
-                // Builder ile nesne oluşturulurken .id() ATAMASI YAPMA!
                 Book book = Book.builder()
-                        // .id(UUID.randomUUID())  <-- BU SATIRI SİL! JPA KENDİSİ VERECEK.
                         .title(request.title())
                         .description(request.description())
                         .isbn(request.isbn())
@@ -76,7 +72,7 @@ public class BookService {
                         .deleted(false)
                         .build();
 
-                // save metodu Transaction bitince commit eder.
+
                 return BookResponse.fromEntity(bookRepository.save(book));
 
             } catch (DataAccessException e) {

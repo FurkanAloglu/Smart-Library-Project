@@ -23,12 +23,10 @@ import java.util.UUID;
 public class PenaltyController {
 
     private final PenaltyService penaltyService;
-    private final UserRepository userRepository; // Kullanıcıyı bulmak için eklendi
+    private final UserRepository userRepository;
 
     @GetMapping("/my")
     public ResponseEntity<List<PenaltyResponse>> getMyPenalties(Principal principal) {
-        // Principal null gelirse patlamaması için basit bir kontrol eklenebilir ama
-        // Spring Security devredeyken buraya loginsiz girilmez.
         return ResponseEntity.ok(penaltyService.getMyPenalties(principal.getName()));
     }
 
@@ -46,16 +44,13 @@ public class PenaltyController {
 
 
     @PostMapping("/{id}/pay")
-    // @PreAuthorize("hasRole('USER')")
     public ResponseEntity<PenaltyResponse> payPenalty(
-            @PathVariable UUID id, // DÜZELTME: Veritabanında UUID olduğu için Long yerine UUID
+            @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        // 1. Email üzerinden kullanıcıyı bul (userDetails.getUsername() emaili döner)
         User user = userRepository.findByEmailAndDeletedFalse(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-        // 2. Servise UUID tipindeki ID'leri gönder
         return ResponseEntity.ok(penaltyService.payPenalty(id, user.getId()));
     }
 }

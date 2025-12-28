@@ -59,7 +59,6 @@ public class BorrowingService {
         }
     }
 
-    // ================= BORROW =================
     @Transactional
     public BorrowingResponse borrowBook(BorrowingRequest request, String userEmail) {
         try {
@@ -90,8 +89,8 @@ public class BorrowingService {
                     .user(user)
                     .book(book)
                     .borrowDate(LocalDateTime.now())
-                    .dueDate(LocalDateTime.now().plusDays(14)) // PROD
-                    // .dueDate(LocalDateTime.now().plusMinutes(1)) // TEST
+                    //.dueDate(LocalDateTime.now().plusDays(14)) // normalde olacak olan
+                     .dueDate(LocalDateTime.now().plusMinutes(1)) // Hakan hocanın isteği 1 dk
                     .build();
 
             Borrowing saved = borrowingRepository.save(borrowing);
@@ -102,7 +101,6 @@ public class BorrowingService {
         }
     }
 
-    // ================= RETURN =================
     @Transactional
     public void returnBook(UUID borrowingId, String userEmail) {
         try {
