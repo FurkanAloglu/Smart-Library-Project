@@ -27,11 +27,8 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    // Kullanıcı kendini görebilsin veya Admin görebilsin
-    // Not: @securityService şu an kodlarda yok, basit yetki kontrolü ile devam ediyoruz.
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
-        // Servis katmanında sahiplik kontrolü eklenebilir ama GET için çok kritik değil
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
@@ -42,8 +39,6 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    // DÜZELTME: Sadece ADMIN değil, USER da erişebilsin.
-    // Yetki kontrolü (IDOR ve Role Escalation) artık UserService içinde yapılıyor.
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable UUID id, @Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(userService.updateUser(id, request));
